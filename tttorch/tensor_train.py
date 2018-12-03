@@ -93,7 +93,7 @@ class TensorTrain(object):
     def __str__(self):
         """A string describing the TensorTrain object, its TT-rank, and shape."""
         shape = self.shape
-        tt_ranks = self.tt_ranks
+        tt_ranks = self.ranks
 
         if self.is_tt_matrix:
             raw_shape = self.raw_shape
@@ -202,7 +202,7 @@ class TensorTrainBatch():
     def __str__(self):
         """A string describing the TensorTrainBatch, its TT-rank and shape."""
         shape = self.shape
-        tt_ranks = self.tt_ranks
+        tt_ranks = self.ranks
         batch_size_str = str(self.batch_size)
 
         if self.is_tt_matrix:
