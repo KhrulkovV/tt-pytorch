@@ -90,6 +90,20 @@ class TensorTrain(object):
         res = res.contiguous().view(*shape)
         return res
 
+        def __str__(self):
+            """A string describing the TensorTrain object, its TT-rank, and shape."""
+            shape = self.shape
+            tt_ranks = self.tt_ranks
+
+            if self.is_tt_matrix:
+                raw_shape = self.raw_shape
+                return "A TT-Matrix of size %d x %d, underlying tensor " \
+                       "shape: %s x %s, TT-ranks: %s" % (shape[0], shape[1],
+                                                         raw_shape[0], raw_shape[1],
+                                                         tt_ranks)
+            else:
+                return "A Tensor Train of shape %s, TT-ranks: %s" % (shape, tt_ranks)
+
 
 class TensorTrainBatch():
     def __init__(self, tt_cores, shape=None, tt_ranks=None, convert_to_tensors=True):
@@ -184,3 +198,23 @@ class TensorTrainBatch():
             res = res.permute(transpose)
         res = res.contiguous().view(*shape)
         return res
+
+    def __str__(self):
+        """A string describing the TensorTrainBatch, its TT-rank and shape."""
+        shape = self.shape
+        tt_ranks = self.tt_ranks
+        batch_size_str = str(self.batch_size)
+
+        if self.is_tt_matrix:
+            raw_shape = self.raw_shape
+            type_str = 'TT-matrices'
+
+            return "A %s element batch of %s of size %d x %d, underlying tensor " \
+                   "shape: %s x %s, TT-ranks: %s" % (batch_size_str, type_str,
+                                                     shape[1], shape[2],
+                                                     raw_shape[0], raw_shape[1],
+                                                     tt_ranks)
+        else:
+            type_str = 'Tensor Trains'
+            return "A %s element batch of %s of shape %s, TT-ranks: %s" % \
+                   (batch_size_str, type_str, shape[1:], tt_ranks)
