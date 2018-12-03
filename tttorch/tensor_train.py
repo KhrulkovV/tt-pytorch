@@ -90,19 +90,19 @@ class TensorTrain(object):
         res = res.contiguous().view(*shape)
         return res
 
-        def __str__(self):
-            """A string describing the TensorTrain object, its TT-rank, and shape."""
-            shape = self.shape
-            tt_ranks = self.tt_ranks
+    def __str__(self):
+        """A string describing the TensorTrain object, its TT-rank, and shape."""
+        shape = self.shape
+        tt_ranks = self.tt_ranks
 
-            if self.is_tt_matrix:
-                raw_shape = self.raw_shape
-                return "A TT-Matrix of size %d x %d, underlying tensor " \
-                       "shape: %s x %s, TT-ranks: %s" % (shape[0], shape[1],
-                                                         raw_shape[0], raw_shape[1],
-                                                         tt_ranks)
-            else:
-                return "A Tensor Train of shape %s, TT-ranks: %s" % (shape, tt_ranks)
+        if self.is_tt_matrix:
+            raw_shape = self.raw_shape
+            return "A TT-Matrix of size %d x %d, underlying tensor " \
+                   "shape: %s x %s, TT-ranks: %s" % (shape[0], shape[1],
+                                                     raw_shape[0], raw_shape[1],
+                                                     tt_ranks)
+        else:
+            return "A Tensor Train of shape %s, TT-ranks: %s" % (shape, tt_ranks)
 
 
 class TensorTrainBatch():
