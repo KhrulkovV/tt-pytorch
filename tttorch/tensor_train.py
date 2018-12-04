@@ -61,19 +61,19 @@ class TensorTrain(object):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.to(device))
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def detach(self):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.detach())
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def requires_grad_(self, requires_grad=True):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.requires_grad_(requires_grad))
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def full(self):
         num_dims = self.ndims
@@ -187,19 +187,19 @@ class TensorTrainBatch():
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.to(device))
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def detach(self):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.detach())
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def requires_grad_(self, requires_grad=True):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.requires_grad_(requires_grad))
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def full(self):
         num_dims = self.ndims
