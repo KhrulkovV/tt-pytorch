@@ -9,7 +9,7 @@ class TensorTrain(object):
             for i in range(len(tt_cores)):
                 tt_cores[i] = torch.Tensor(tt_cores[i])
 
-        self._tt_cores = tuple(tt_cores)
+        self._tt_cores = tt_cores
 
         if len(self._tt_cores[0].shape) == 4:
             self._is_tt_matrix = True
@@ -58,8 +58,16 @@ class TensorTrain(object):
         return self._ndims
 
     def to(self, device):
-        for core in self.cores:
-            core.to(device)
+        new_cores = []
+        for core in self.tt_cores:
+            new_cores.append(core.to(device))
+        self._tt_cores = new_cores
+            
+    def detach(self):
+        new_cores = []
+        for core in self.tt_cores:
+            new_cores.append(core.detach())          
+        self._tt_cores = new_cores
 
     def full(self):
         num_dims = self.ndims
@@ -94,15 +102,17 @@ class TensorTrain(object):
         """A string describing the TensorTrain object, its TT-rank, and shape."""
         shape = self.shape
         tt_ranks = self.ranks
-
+        device = self.tt_cores[0].device
         if self.is_tt_matrix:
             raw_shape = self.raw_shape
-            return "A TT-Matrix of size %d x %d, underlying tensor " \
-                   "shape: %s x %s, TT-ranks: %s" % (shape[0], shape[1],
-                                                     raw_shape[0], raw_shape[1],
-                                                     tt_ranks)
+            return "A TT-Matrix of size %d x %d, underlying tensor" \
+                   "shape: %s x %s, TT-ranks: %s " \
+                   "\n on device '%s' " % (shape[0], shape[1],
+                                      raw_shape[0], raw_shape[1],
+                                      tt_ranks, device)
         else:
-            return "A Tensor Train of shape %s, TT-ranks: %s" % (shape, tt_ranks)
+            return "A Tensor Train of shape %s, TT-ranks: %s" \
+                   "\n on device '%s' " % (shape, tt_ranks, device)
 
 
 class TensorTrainBatch():
@@ -168,8 +178,16 @@ class TensorTrainBatch():
         return self._batch_size
 
     def to(self, device):
-        for core in self.cores:
-            core.to(device)
+        new_cores = []
+        for core in self.tt_cores:
+            new_cores.append(core.to(device))
+        self._tt_cores = new_cores
+            
+    def detach(self):
+        new_cores = []
+        for core in self.tt_cores:
+            new_cores.append(core.detach())          
+        self._tt_cores = new_cores
 
     def full(self):
         num_dims = self.ndims
@@ -204,17 +222,19 @@ class TensorTrainBatch():
         shape = self.shape
         tt_ranks = self.ranks
         batch_size_str = str(self.batch_size)
-
+        device = self.tt_cores[0].device
+        
         if self.is_tt_matrix:
             raw_shape = self.raw_shape
             type_str = 'TT-matrices'
 
             return "A %s element batch of %s of size %d x %d, underlying tensor " \
-                   "shape: %s x %s, TT-ranks: %s" % (batch_size_str, type_str,
-                                                     shape[1], shape[2],
-                                                     raw_shape[0], raw_shape[1],
-                                                     tt_ranks)
+                   "shape: %s x %s, TT-ranks: %s" \
+                   "on device '%s' " % (batch_size_str, type_str,
+                                        shape[1], shape[2],
+                                        raw_shape[0], raw_shape[1],
+                                        tt_ranks, device)
         else:
             type_str = 'Tensor Trains'
-            return "A %s element batch of %s of shape %s, TT-ranks: %s" % \
-                   (batch_size_str, type_str, shape[1:], tt_ranks)
+            return "A %s element batch of %s of shape %s, TT-ranks: %s \n on device '%s'" % \
+                   (batch_size_str, type_str, shape[1:], tt_ranks, device)
