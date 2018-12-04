@@ -61,13 +61,19 @@ class TensorTrain(object):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.to(device))
-        self._tt_cores = new_cores
-            
+        return TensorTrain(new_cores)
+
     def detach(self):
         new_cores = []
         for core in self.tt_cores:
-            new_cores.append(core.detach())          
-        self._tt_cores = new_cores
+            new_cores.append(core.detach())
+        return TensorTrain(new_cores)
+
+    def requires_grad_(self, requires_grad=True):
+        new_cores = []
+        for core in self.tt_cores:
+            new_cores.append(core.requires_grad_(requires_grad))
+        return TensorTrain(new_cores)
 
     def full(self):
         num_dims = self.ndims
@@ -108,8 +114,8 @@ class TensorTrain(object):
             return "A TT-Matrix of size %d x %d, underlying tensor" \
                    "shape: %s x %s, TT-ranks: %s " \
                    "\n on device '%s' " % (shape[0], shape[1],
-                                      raw_shape[0], raw_shape[1],
-                                      tt_ranks, device)
+                                           raw_shape[0], raw_shape[1],
+                                           tt_ranks, device)
         else:
             return "A Tensor Train of shape %s, TT-ranks: %s" \
                    "\n on device '%s' " % (shape, tt_ranks, device)
@@ -181,13 +187,19 @@ class TensorTrainBatch():
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.to(device))
-        self._tt_cores = new_cores
-            
+        return TensorTrain(new_cores)
+
     def detach(self):
         new_cores = []
         for core in self.tt_cores:
-            new_cores.append(core.detach())          
-        self._tt_cores = new_cores
+            new_cores.append(core.detach())
+        return TensorTrain(new_cores)
+
+    def requires_grad_(self, requires_grad=True):
+        new_cores = []
+        for core in self.tt_cores:
+            new_cores.append(core.requires_grad_(requires_grad))
+        return TensorTrain(new_cores)
 
     def full(self):
         num_dims = self.ndims
@@ -223,7 +235,7 @@ class TensorTrainBatch():
         tt_ranks = self.ranks
         batch_size_str = str(self.batch_size)
         device = self.tt_cores[0].device
-        
+
         if self.is_tt_matrix:
             raw_shape = self.raw_shape
             type_str = 'TT-matrices'
