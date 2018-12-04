@@ -1,13 +1,17 @@
 import torch
 import numpy as np
+import torch.nn as nn
 
 
 class TensorTrain(object):
-    def __init__(self, tt_cores, shape=None, tt_ranks=None, convert_to_tensors=True):
+    def __init__(self, tt_cores, shape=None, tt_ranks=None, convert_to_tensors=True, is_params=False):
         tt_cores = list(tt_cores)
         if convert_to_tensors:
             for i in range(len(tt_cores)):
-                tt_cores[i] = torch.Tensor(tt_cores[i])
+                if is_params:
+                    tt_cores[i] = nn.Parameter(torch.Tensor(tt_cores[i]))
+                else:
+                    tt_cores[i] = torch.Tensor(tt_cores[i])
 
         self._tt_cores = tt_cores
 
@@ -61,19 +65,19 @@ class TensorTrain(object):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.to(device))
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def detach(self):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.detach())
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def requires_grad_(self, requires_grad=True):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.requires_grad_(requires_grad))
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def full(self):
         num_dims = self.ndims
@@ -187,19 +191,19 @@ class TensorTrainBatch():
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.to(device))
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def detach(self):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.detach())
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def requires_grad_(self, requires_grad=True):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.requires_grad_(requires_grad))
-        return TensorTrain(new_cores)
+        return TensorTrain(new_cores, convert_to_tensors=False)
 
     def full(self):
         num_dims = self.ndims

@@ -135,7 +135,7 @@ def eye(shape, dtype=torch.float32):
 
 
 def matrix_with_random_cores(shape, tt_rank=2, mean=0., stddev=1.,
-                             dtype=torch.float32):
+                             dtype=torch.float32, is_params=False):
     """Generate a TT-matrix of given shape with N(mean, stddev^2) cores.
     Args:
       shape: 2d array, shape[0] is the shape of the matrix row-index,
@@ -183,11 +183,11 @@ def matrix_with_random_cores(shape, tt_rank=2, mean=0., stddev=1.,
                            tt_rank[i + 1])
         tt_cores[i] = torch.randn(curr_core_shape, dtype=dtype) * stddev + mean
 
-    return TensorTrain(tt_cores)
+    return TensorTrain(tt_cores, is_params=is_params)
 
 
 def random_matrix(shape, tt_rank=2, mean=0., stddev=1.,
-                  dtype=torch.float32):
+                  dtype=torch.float32, is_params=False):
     """Generate a random TT-matrix of the given shape with given mean and stddev.
     Entries of the generated matrix (in the full format) will be iid and satisfy
     E[x_{i1i2..id}] = mean, Var[x_{i1i2..id}] = stddev^2, but the distribution is
@@ -245,7 +245,7 @@ def random_matrix(shape, tt_rank=2, mean=0., stddev=1.,
     var = np.prod(tt_rank ** cr_exponent)
     core_stddev = stddev ** (1.0 / num_dims) * var
 
-    tt = matrix_with_random_cores(shape, tt_rank=tt_rank, stddev=core_stddev, dtype=dtype)
+    tt = matrix_with_random_cores(shape, tt_rank=tt_rank, stddev=core_stddev, dtype=dtype, is_params=is_params)
 
     if np.abs(mean) < 1e-8:
         return tt

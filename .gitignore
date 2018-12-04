@@ -1,6 +1,8 @@
 ompiled python modules.
 *.pyc
 
+/.data
+.data
 # Mac DS_Store files
 .DS_Store
 
