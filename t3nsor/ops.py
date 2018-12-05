@@ -1,4 +1,4 @@
-from tttorch import TensorTrainBatch
+from t3nsor import TensorTrainBatch
 import torch
 
 

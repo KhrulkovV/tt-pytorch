@@ -67,7 +67,7 @@ class TensorTrain(object):
     @property
     def parameter(self):
         if self.is_parameter:
-            return self.parameter
+            return self._parameter
         else:
             raise ValueError('Not a parameter, run .to_parameter() first')
 

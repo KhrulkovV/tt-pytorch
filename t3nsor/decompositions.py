@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from tttorch.tensor_train import TensorTrain
+from t3nsor.tensor_train import TensorTrain
 
 
 def to_tt_tensor(tens, max_tt_rank=10, epsilon=None):
