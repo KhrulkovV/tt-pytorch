@@ -13,4 +13,18 @@ def ind2sub(siz, idx):
         subs.append(torch.floor(idx.float() / k[i]))
         idx = torch.fmod(idx, k[i])
 
-    return torch.stack(subs, dim=1)
+    return torch.stack(subs[::-1], dim=1)
+
+
+def svd_fix(x):
+    n = x.shape[0]
+    m = x.shape[1]
+    
+    if n > m:
+        u, s, v = torch.svd(x)
+        
+    else:
+        u, s, v = torch.svd(x.t())
+        v, u = u, v
+    
+    return u, s, v

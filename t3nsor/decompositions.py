@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from t3nsor.tensor_train import TensorTrain
+from t3nsor.utils import svd_fix
 
 
 def to_tt_tensor(tens, max_tt_rank=10, epsilon=None):
@@ -20,7 +21,7 @@ def to_tt_tensor(tens, max_tt_rank=10, epsilon=None):
         rows = ranks[core_idx] * curr_mode
         tens = tens.view(rows, -1)
         columns = tens.shape[1]
-        u, s, v = torch.svd(tens)
+        u, s, v = svd_fix(tens)
         if max_tt_rank[core_idx + 1] == 1:
             ranks[core_idx + 1] = 1
         else:
@@ -38,7 +39,7 @@ def to_tt_tensor(tens, max_tt_rank=10, epsilon=None):
     core_shape = (ranks[d - 1], last_mode, ranks[d])
     tt_cores.append(tens.view(core_shape))
 
-    return TensorTrain(tt_cores)
+    return TensorTrain(tt_cores, convert_to_tensors=False)
 
 
 def to_tt_matrix(mat, shape, max_tt_rank=10, epsilon=None):
@@ -74,4 +75,4 @@ def to_tt_matrix(mat, shape, max_tt_rank=10, epsilon=None):
         curr_core_new_shape = (curr_rank, shape[0, core_idx], shape[1, core_idx], next_rank)
         curr_core = curr_core.view(*curr_core_new_shape)
         tt_cores.append(curr_core)
-    return TensorTrain(tt_cores)
+    return TensorTrain(tt_cores, convert_to_tensors=False)

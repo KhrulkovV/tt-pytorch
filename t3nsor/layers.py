@@ -35,7 +35,7 @@ class TTEmbedding(nn.Module):
         x = x.contiguous().view(-1)
         x_ind = t3.ind2sub(self.emb_shape, x).long()
 
-        x_ind = x_ind.flip(1)
+        #x_ind = x_ind.flip(1)
         rows = t3.gather_rows(self.tt_matrix, x_ind).full()
 
         rows = rows.view(batch_size, sent_size, -1)
