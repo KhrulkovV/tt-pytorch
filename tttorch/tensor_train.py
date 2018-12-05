@@ -4,14 +4,11 @@ import torch.nn as nn
 
 
 class TensorTrain(object):
-    def __init__(self, tt_cores, shape=None, tt_ranks=None, convert_to_tensors=True, is_params=False):
+    def __init__(self, tt_cores, shape=None, tt_ranks=None, convert_to_tensors=True):
         tt_cores = list(tt_cores)
         if convert_to_tensors:
             for i in range(len(tt_cores)):
-                if is_params:
-                    tt_cores[i] = nn.Parameter(torch.Tensor(tt_cores[i]))
-                else:
-                    tt_cores[i] = torch.Tensor(tt_cores[i])
+                tt_cores[i] = torch.Tensor(tt_cores[i])
 
         self._tt_cores = tt_cores
 
@@ -32,6 +29,8 @@ class TensorTrain(object):
             self._ndims = len(self._raw_shape)
 
         self._ranks = [tt_core.shape[0] for tt_core in self._tt_cores] + [1, ]
+        self._is_parameter = False
+        self._parameter = None
 
     @property
     def tt_cores(self):
@@ -61,6 +60,17 @@ class TensorTrain(object):
     def ndims(self):
         return self._ndims
 
+    @property
+    def is_parameter(self):
+        return self._is_parameter
+
+    @property
+    def parameter(self):
+        if self.is_parameter:
+            return self.parameter
+        else:
+            raise ValueError('Not a parameter, run .to_parameter() first')
+
     def to(self, device):
         new_cores = []
         for core in self.tt_cores:
@@ -78,6 +88,16 @@ class TensorTrain(object):
         for core in self.tt_cores:
             new_cores.append(core.requires_grad_(requires_grad))
         return TensorTrain(new_cores, convert_to_tensors=False)
+
+    def to_parameter(self):
+        new_cores = []
+        for core in self.tt_cores:
+            new_cores.append(nn.Parameter(core))
+
+        tt_p = TensorTrain(new_cores, convert_to_tensors=False)
+        tt_p._parameter = nn.ParameterList(tt_p.tt_cores)
+        tt_p._is_parameter = True
+        return tt_p
 
     def full(self):
         num_dims = self.ndims

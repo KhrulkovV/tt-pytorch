@@ -5,7 +5,7 @@ import torch
 def gather_rows(tt_mat, inds):
     """
     inds -- list of indices of shape batch_size x d
-    d = len(mat.raw_shape[1])
+    d = len(tt_mat.raw_shape[1])
     """
     cores = tt_mat.tt_cores
     slices = []
