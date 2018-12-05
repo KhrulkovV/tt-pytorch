@@ -29,8 +29,9 @@ class TTEmbedding(nn.Module):
         if self.batch_dim_last:
             x = x.permute(1, 0)
 
-        batch_size = x.shape[0]
+        batch_size = x.shape[0]        
         sent_size = x.shape[1]
+
         x = x.contiguous().view(-1)
         x_ind = t3.ind2sub(self.emb_shape, x).long()
 
@@ -39,6 +40,6 @@ class TTEmbedding(nn.Module):
 
         rows = rows.view(batch_size, sent_size, -1)
         if self.batch_dim_last:
-            rows.permute(1, 0, 2)
+            rows = rows.permute(1, 0, 2)
 
         return rows
