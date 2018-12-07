@@ -110,6 +110,35 @@ def tensor_zeros(shape, dtype=torch.float32):
     return TensorTrain(tt_cores)
 
 
+def matrix_zeros(shape, rank=2, dtype=torch.float32):
+    """Generate TT-matrix of the given shape with all entries equal to 0.
+    Args:
+      shape: array representing the shape of the future tensor
+      dtype: [torch.float32] dtype of the resulting tensor.
+      name: string, name of the Op.
+    Returns:
+      TensorTrain object containing a TT-matrix
+    """
+
+    shape = np.array(shape)
+    _validate_input_parameters(is_tensor=False, shape=shape)
+    num_dims = shape[0].size
+
+    tt_cores = num_dims * [None]
+
+    curr_core_shape = (1, shape[0][0], shape[1][0], rank)
+    tt_cores[0] = torch.zeros(curr_core_shape, dtype=dtype)
+    
+    for i in range(1, num_dims - 1):
+        curr_core_shape = (rank, shape[0][i], shape[1][i], rank)
+        tt_cores[i] = torch.zeros(curr_core_shape, dtype=dtype)
+        
+    curr_core_shape = (rank, shape[0][num_dims - 1], shape[1][num_dims - 1], 1)
+    tt_cores[num_dims - 1] = torch.zeros(curr_core_shape, dtype=dtype)    
+
+    return TensorTrain(tt_cores)
+
+
 def eye(shape, dtype=torch.float32):
     """Creates an identity TT-matrix.
     Args:
@@ -251,3 +280,21 @@ def random_matrix(shape, tt_rank=2, mean=0., stddev=1.,
         return tt
     else:
         raise NotImplementedError('non-zero mean is not supported yet')
+
+        
+        
+def glorot_initializer(shape, tt_rank=2, dtype=torch.float32):
+    shape = list(shape)
+    # In case shape represents a vector, e.g. [None, [2, 2, 2]]
+    if shape[0] is None:
+        shape[0] = np.ones(len(shape[1]), dtype=int)
+      # In case shape represents a vector, e.g. [[2, 2, 2], None]
+    if shape[1] is None:
+        shape[1] = np.ones(len(shape[0]), dtype=int)
+    shape = np.array(shape)
+    tt_rank = np.array(tt_rank)
+    _validate_input_parameters(is_tensor=False, shape=shape, tt_rank=tt_rank)
+    n_in = np.prod(shape[0])
+    n_out = np.prod(shape[1])
+    lamb = 2.0 / (n_in + n_out)
+    return random_matrix(shape, tt_rank=tt_rank, stddev=np.sqrt(lamb),dtype=dtype)

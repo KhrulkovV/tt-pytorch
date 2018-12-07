@@ -31,6 +31,9 @@ class TensorTrain(object):
         self._ranks = [tt_core.shape[0] for tt_core in self._tt_cores] + [1, ]
         self._is_parameter = False
         self._parameter = None
+        self._dof = np.sum([np.prod(list(tt_core.shape)) for tt_core in self._tt_cores])
+        self._total = np.prod(self._shape)
+        
 
     @property
     def tt_cores(self):
@@ -70,6 +73,15 @@ class TensorTrain(object):
             return self._parameter
         else:
             raise ValueError('Not a parameter, run .to_parameter() first')
+            
+    @property
+    def dof(self):
+        return self._dof
+    
+    @property
+    def total(self):
+        return self._total
+        
 
     def to(self, device):
         new_cores = []
@@ -133,16 +145,17 @@ class TensorTrain(object):
         shape = self.shape
         tt_ranks = self.ranks
         device = self.tt_cores[0].device
+        compression_rate = self.total / self.dof
         if self.is_tt_matrix:
             raw_shape = self.raw_shape
             return "A TT-Matrix of size %d x %d, underlying tensor" \
                    "shape: %s x %s, TT-ranks: %s " \
-                   "\n on device '%s' " % (shape[0], shape[1],
+                   "\n on device '%s' with compression rate %.2f" % (shape[0], shape[1],
                                            raw_shape[0], raw_shape[1],
-                                           tt_ranks, device)
+                                           tt_ranks, device, compression_rate)
         else:
             return "A Tensor Train of shape %s, TT-ranks: %s" \
-                   "\n on device '%s' " % (shape, tt_ranks, device)
+                   "\n on device '%s' with compression rate %.2f" % (shape, tt_ranks, device, compression_rate)
 
 
 class TensorTrainBatch():
