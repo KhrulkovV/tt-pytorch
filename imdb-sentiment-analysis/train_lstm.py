@@ -52,8 +52,8 @@ train_data, test_data = datasets.IMDB.splits(TEXT, LABEL)
 train_data, valid_data = train_data.split()
 print('Done')
 
-raw_voc_size = np.prod(args.voc_shape)
-raw_embed_shape = np.prod(args.embed_shape)
+raw_voc_size = int(np.prod(args.voc_shape))
+raw_embed_shape = int(np.prod(args.embed_shape))
 
 TEXT.build_vocab(train_data, max_size=raw_voc_size - 2)
 LABEL.build_vocab(train_data)
