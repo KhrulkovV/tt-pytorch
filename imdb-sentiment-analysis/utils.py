@@ -1,4 +1,8 @@
 import torch
+import subprocess
+import pandas as pd
+import pickle
+
 
 def binary_accuracy(preds, y):
     """
@@ -64,3 +68,31 @@ def evaluate(model, iterator, criterion):
                 break
 
     return epoch_loss / len(iterator), epoch_acc / len(iterator)
+
+
+def evaluate_embed(vocab, embeds):
+    if len(vocab) < embeds.shape[0]:
+        embeds = embeds[:len(vocab), :]
+        
+    d = dict(zip(list(vocab.keys()), list(embeds)))
+    
+    
+    fin = '/workspace/tt-pytorch/tmp.pkl'
+    fout = '/workspace/tt-pytorch/tmp.csv'
+    
+    
+    with open(fin, 'wb') as f:
+        pickle.dump(d, f)
+        
+    path = '/workspace/tt-pytorch/word-embeddings-benchmarks/scripts/evaluate_on_all.py'
+    script_full = 'python {path} -f {fname} -o {outname}'.format(path=path, 
+                                                                 fname=fin, 
+                                                                 outname=fout)
+    
+    subprocess.run([script_full], shell=True)
+    df = pd.read_csv(fout)
+
+    return df
+
+
+

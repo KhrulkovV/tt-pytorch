@@ -25,3 +25,34 @@ class LSTM_Classifier(nn.Module):
         else:
             hidden = self.dropout(hidden)
         return self.fc(hidden.squeeze(0))
+
+    
+class SkipgramNegSamplingTT(nn.Module):
+    
+    def __init__(self, vocab_size, projection_dim):
+        super(SkipgramNegSamplingTT, self).__init__()
+        
+        self.embedding_v = t3.TTEmbedding(init=t3.glorot_initializer(shape=[vocab_size, projection_dim], tt_rank=16),
+                                          batch_dim_last=False)
+
+        self.embedding_u = t3.TTEmbedding(shape=[vocab_size, projection_dim], tt_rank=16, stddev=0.0001, batch_dim_last=False)
+        
+        self.logsigmoid = nn.LogSigmoid()
+                        
+    def forward(self, center_words, target_words, negative_words):
+        center_embeds = self.embedding_v(center_words) # B x 1 x D
+        target_embeds = self.embedding_u(target_words) # B x 1 x D
+        
+        neg_embeds = -self.embedding_u(negative_words) # B x K x D
+        
+        positive_score = target_embeds.bmm(center_embeds.transpose(1, 2)).squeeze(2) # Bx1
+        negative_score = torch.sum(neg_embeds.bmm(center_embeds.transpose(1, 2)).squeeze(2), 1).view(negs.size(0), -1) # BxK -> Bx1
+        
+        loss = self.logsigmoid(positive_score) + self.logsigmoid(negative_score)
+        
+        return -torch.mean(loss)
+    
+    def prediction(self, inputs):
+        embeds = self.embedding_v(inputs)
+        
+        return embeds    

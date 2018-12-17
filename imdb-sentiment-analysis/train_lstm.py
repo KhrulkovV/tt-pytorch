@@ -18,6 +18,7 @@ parser.add_argument('--n_layers', default=2, type=int)
 parser.add_argument('--hidden_dim', default=256, type=int)
 parser.add_argument('--n_epochs',  default=10, type=int)
 parser.add_argument('--fout',  default=None, type=str)
+parser.add_argument('--permute', default=False, type=bool)
 
 
 
@@ -84,9 +85,17 @@ lstm_model = LSTM_Classifier(embedding_dim=EMBEDDING_DIM,
                              dropout=DROPOUT)
 
 if args.use_tt:
-    embed_model = t3.TTEmbedding(shape=[args.voc_shape, args.embed_shape],
-                                 tt_rank=args.ranks,
-                                 batch_dim_last=True)
+    if args.permute:
+        p = torch.randperm(int(np.prod(args.voc_shape))).to(device)
+        embed_model = t3.TTEmbedding(shape=[args.voc_shape, args.embed_shape],
+                                     tt_rank=args.ranks,
+                                     batch_dim_last=True,
+                                     permutation=p)
+    else:
+        embed_model = t3.TTEmbedding(shape=[args.voc_shape, args.embed_shape],
+                             tt_rank=args.ranks,
+                             batch_dim_last=True)
+        
 
 else:
     embed_model = nn.Embedding(num_embeddings=INPUT_DIM, embedding_dim=EMBEDDING_DIM)

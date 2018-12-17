@@ -5,7 +5,7 @@ import t3nsor as t3
 
 
 class TTEmbedding(nn.Module):
-    def __init__(self, init=None, shape=None, tt_rank=2, stddev=1.0, batch_dim_last=True):
+    def __init__(self, init=None, shape=None, tt_rank=2, stddev=1.0, batch_dim_last=True, permutation=None):
         super(TTEmbedding, self).__init__()
 
         if init is None:
@@ -23,6 +23,7 @@ class TTEmbedding(nn.Module):
         self.parameters = self.tt_matrix.parameter
         self.batch_dim_last = batch_dim_last
         self.emb_shape = self.shape[0]
+        self.permutation = permutation
 
     def forward(self, x):
 
@@ -33,6 +34,10 @@ class TTEmbedding(nn.Module):
         sent_size = x.shape[1]
 
         x = x.contiguous().view(-1)
+        
+        if self.permutation is not None:
+            x = self.permutation[x]
+        
         x_ind = t3.ind2sub(self.emb_shape, x).long()
 
         #x_ind = x_ind.flip(1)
