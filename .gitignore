@@ -1,6 +1,6 @@
 ompiled python modules.
 *.pyc
-
+/logs
 /.data
 .data
 .vector_cache
