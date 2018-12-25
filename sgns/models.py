@@ -1,10 +1,11 @@
-import sys
-sys.path.append("../")
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import t3nsor as t3
+
+import sys
+sys.path.append("../")
 
 
 def log1p_exp(input_tensor):
@@ -40,8 +41,8 @@ class VanillaEmbeddings(nn.Module):
         self.c_emb.weight.data.uniform_(-0, 0)
 
     def forward(self, word_indices, context_indices):
-        w = self.w_emb.forward(word_indices)
-        c = self.c_emb.forward(context_indices)
+        w = self.w_emb.forward(word_indices.squeeze())
+        c = self.c_emb.forward(context_indices.squeeze())
         return w, c
 
 
@@ -68,6 +69,8 @@ class TTEmbeddings(nn.Module):
             stddev=1e-6,
             tt_rank=tt_rank,
             batch_dim_last=False)
+        # self.w_linear = nn.Linear(embedding_dim, embedding_dim)
+        # self.c_linear = nn.Linear(embedding_dim, embedding_dim)
 
     def init_embeddings(self, tt_matrices):
         """Initialize embedding with pretrained tt-matrices.
@@ -78,8 +81,17 @@ class TTEmbeddings(nn.Module):
         self.c_emb = t3.TTEmbedding(init=c, batch_dim_last=False)
 
     def forward(self, word_indices, context_indices):
-        w = self.w_emb.forward(word_indices[:, None])[:, 0, :]
-        c = self.c_emb.forward(context_indices[:, None])[:, 0, :]
+        w = self.w_emb.forward(word_indices)[:, 0, :]
+
+        if len(context_indices.shape) == 2:
+            bs, num = context_indices.shape
+            context_indices = context_indices.view(-1, 1)
+            c = self.c_emb.forward(context_indices)[:, 0, :]
+            c = c.view(bs, num, -1)
+        else:
+            c = self.c_emb.forward(context_indices)[:, 0, :]
+        # w = self.w_linear.forward(nn.functional.relu(w))
+        # c = self.c_linear.forward(nn.functional.relu(c))
         return w, c
 
 
@@ -99,17 +111,22 @@ class Word2VecSGNS:
     def train(self, batch):
         words, contexts, counts, negatives = \
             batch["word"], batch["context"], \
-            batch["count"], batch["negative"]
-        words = torch.LongTensor(words).to(self._device)
-        contexts = torch.LongTensor(contexts).to(self._device)
-        counts = torch.FloatTensor(counts).to(self._device)
-        negatives = torch.FloatTensor(negatives).to(self._device)
+            batch["count"], batch["negatives"]
+        words = torch.LongTensor(words).to(self._device)[:, None]
+        contexts = torch.LongTensor(contexts).to(self._device)[:, None]
+        counts = torch.FloatTensor(counts).to(self._device)[:, None]
+        negatives = torch.LongTensor(negatives).to(self._device)
 
-        w_emb, c_emb = self.emb_model(words, contexts)
-        wc = torch.einsum("bi,bi->b", (w_emb, c_emb))
-        loss = (log1p_exp(-wc) * counts + \
-            self.k * negatives * log1p_exp(wc)).mean()
-        
+        all_contexts = torch.cat((contexts, negatives), dim=1)
+        w_emb, c_emb = self.emb_model(words, all_contexts)
+
+        wc = torch.einsum("bi,bji->bj", (w_emb, c_emb))
+        pos_wc, neg_wc = wc[:, :1], wc[:, 1:]
+
+        pos_term = log1p_exp(-pos_wc)
+        neg_term = self.k * log1p_exp(neg_wc).mean(dim=1)
+        loss = torch.mean(counts * (pos_term + neg_term))
+
         # update embeddings parameters
         self.optimizer.zero_grad()
         loss.backward()

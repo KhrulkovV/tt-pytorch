@@ -29,14 +29,13 @@ def create_corpus_matrix(sentences, vocabulary, window_size=5):
     D = np.zeros((dim, dim))
     s = window_size//2
     for sentence in sentences:
-        l = len(sentence)
-        for i in range(l):
-            for j in range(max(0,i-s), min(i+s+1,l)):
-                if (i != j and (sentence[i] in vocabulary) \
-                    and (sentence[j] in vocabulary)):
-                    c = vocabulary[sentence[j]]
-                    w = vocabulary[sentence[i]]
-                    D[c][w] += 1                  
+        for i in range(len(sentence)):
+            for j in range(max(0, i-s), min(i+s+1, len(sentence))):
+                w, c = sentence[i], sentence[j]
+                if (i != j) and (w in vocabulary) and (c in vocabulary):
+                    c_idx = vocabulary[c]
+                    w_idx = vocabulary[w]
+                    D[c_idx][w_idx] += 1
     return D.T
 
 
@@ -58,22 +57,29 @@ def load_corpus(data_dir="data", corpus="enwik8"):
         with open(data_dir+"/"+corpus+"_vocab.pkl", "wb") as f:
             pickle.dump(vocab, f, pickle.HIGHEST_PROTOCOL)
     return vocab, D
-        
+
 
 class CorpusDataset(Dataset):
-    def __init__(self, corpus_matrix):
+    def __init__(self, corpus_matrix, neg_sampling_param=5):
+        self.k = neg_sampling_param
         self.D = corpus_matrix
-        self.B = self.D.sum(axis=0, keepdims=True) * \
-            self.D.sum(axis=1, keepdims=True) / self.D.sum()
+        self.unigram = np.power(self.D.sum(axis=0), 0.75)
+        self.unigram = self.unigram / self.unigram.sum()
+        self.uni_indices = np.arange(self.unigram.size)
+
         self.vocab_size = self.D.shape[0]
         self.w, self.c = corpus_matrix.nonzero()
         self.len = len(self.w)
         self.data = {
             (self.w[i], self.c[i]): self.D[self.w[i], self.c[i]]
             for i in range(self.len)}
-        self.negative = {
-            (self.w[i], self.c[i]): self.B[self.w[i], self.c[i]]
-            for i in range(self.len)}
+        self.update_negatives()
+
+    def update_negatives(self):
+        self.negatives = np.random.choice(
+            self.uni_indices,
+            size=self.k*self.len,
+            p=self.unigram).reshape(self.len, self.k)
 
     def __getitem__(self, index):
         i, j = self.w[index], self.c[index]
@@ -81,7 +87,7 @@ class CorpusDataset(Dataset):
             "word": i,
             "context": j,
             "count": self.data[(i, j)].astype(np.float32),
-            "negative": self.negative[(i, j)].astype(np.float32)}
+            "negatives": self.negatives[index]}
         return dct
 
     def __len__(self):
