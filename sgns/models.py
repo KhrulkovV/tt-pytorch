@@ -9,7 +9,7 @@ sys.path.append("../")
 
 
 def log1p_exp(input_tensor):
-    """ Computationally stable function for computing log(1+exp(x)).
+    """ Numerically stable function for computing log(1+exp(x)).
     """
     x = input_tensor * input_tensor.ge(0).to(torch.float32)
     res = x + torch.log1p(
@@ -69,6 +69,10 @@ class TTEmbeddings(nn.Module):
             stddev=1e-6,
             tt_rank=tt_rank,
             batch_dim_last=False)
+        #self.c_emb = nn.Embedding(
+        #    num_embeddings=vocab_size,
+        #    embedding_dim=embedding_dim)
+        #self.c_emb.weight.data.uniform_(-0, 0)
         # self.w_linear = nn.Linear(embedding_dim, embedding_dim)
         # self.c_linear = nn.Linear(embedding_dim, embedding_dim)
 
@@ -124,7 +128,8 @@ class Word2VecSGNS:
         pos_wc, neg_wc = wc[:, :1], wc[:, 1:]
 
         pos_term = log1p_exp(-pos_wc)
-        neg_term = self.k * log1p_exp(neg_wc).mean(dim=1)
+        neg_term = self.k * log1p_exp(neg_wc).mean(dim=1, keepdim=True)
+
         loss = torch.mean(counts * (pos_term + neg_term))
 
         # update embeddings parameters
