@@ -4,6 +4,7 @@ import pickle
 import numpy as np
 import torch
 from torch.utils.data import Dataset, Sampler, DataLoader
+from torch.utils.data.distributed import DistributedSampler
 
 
 def create_vocabulary(sentences, r=200):
@@ -23,8 +24,8 @@ def create_vocabulary(sentences, r=200):
     return vocabulary
 
 
-def create_corpus_matrix(sentences, vocabulary, window_size=5):
-    """Create a co-occurrence matrix D from training corpus."""
+def create_triples_dataset(sentences, vocabulary, window_size=5):
+    """Create training dataset consisting of triples (w, c, n_wc)"""
     dim = len(vocabulary)
     D = np.zeros((dim, dim))
     s = window_size//2
@@ -36,43 +37,50 @@ def create_corpus_matrix(sentences, vocabulary, window_size=5):
                     c_idx = vocabulary[c]
                     w_idx = vocabulary[w]
                     D[c_idx][w_idx] += 1
-    return D.T
+    w, c = D.nonzero()
+    data = {(w[i], c[i]): D[w[i], c[i]]for i in range(len(w))}
+    unigram = np.power(D.sum(axis=0), 0.75)
+    unigram = unigram / unigram.sum()
+    return data, unigram
 
 
 def load_corpus(data_dir="data", corpus="enwik8"):
-    if os.path.isfile(data_dir+"/"+corpus+".npz"):
-        D = np.load(data_dir+"/"+corpus+".npz")["D"]
+    if os.path.isfile(data_dir+"/"+corpus+"_dataset.pkl"):
         with open(data_dir+"/"+corpus+"_vocab.pkl", "rb") as f:
             vocab = pickle.load(f)
+        with open(data_dir+"/"+corpus+"_dataset.pkl", "rb") as f:
+            dataset = pickle.load(f)
+        unigram = np.load(data_dir+"/"+corpus+"_unigram.npz")["unigram"]
     else:
         file = open(data_dir+"/"+corpus+".txt", "r")
         docstr = "".join([line for line in file])
         sentences = re.split(r"[.!?]", docstr)
         sentences = [sentence.split()
                      for sentence in sentences if len(sentence) > 1]
-        vocab = create_vocabulary(sentences, r=200)
-        D = create_corpus_matrix(sentences, vocab)
 
-        np.savez(data_dir+"/"+corpus+".npz", D=D)
+        vocab = create_vocabulary(sentences, r=200)
         with open(data_dir+"/"+corpus+"_vocab.pkl", "wb") as f:
             pickle.dump(vocab, f, pickle.HIGHEST_PROTOCOL)
-    return vocab, D
+
+        dataset, unigram = create_triples_dataset(sentences, vocab)
+        with open(data_dir+"/"+corpus+"_dataset.pkl", "wb") as f:
+            pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
+        np.savez(data_dir+"/"+corpus+"_unigram.npz", unigram=unigram)
+
+    return vocab, dataset, unigram
 
 
 class CorpusDataset(Dataset):
-    def __init__(self, corpus_matrix, neg_sampling_param=5):
+    def __init__(
+            self, dataset, vocab, unigram, neg_sampling_param=5):
         self.k = neg_sampling_param
-        self.D = corpus_matrix
-        self.unigram = np.power(self.D.sum(axis=0), 0.75)
-        self.unigram = self.unigram / self.unigram.sum()
+        self.unigram = unigram
         self.uni_indices = np.arange(self.unigram.size)
-
-        self.vocab_size = self.D.shape[0]
-        self.w, self.c = corpus_matrix.nonzero()
-        self.len = len(self.w)
-        self.data = {
-            (self.w[i], self.c[i]): self.D[self.w[i], self.c[i]]
-            for i in range(self.len)}
+        self.vocab_size = len(vocab)
+        self.len = len(dataset)
+        self.data = dataset
+        self.w = [x[0] for x in self.data.keys()]
+        self.c = [x[1] for x in self.data.keys()]
         self.update_negatives()
 
     def update_negatives(self):

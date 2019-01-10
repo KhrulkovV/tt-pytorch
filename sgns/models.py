@@ -108,6 +108,7 @@ class Word2VecSGNS:
         self._device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
         self.emb_model = embeddings_model.to(self._device)
+        self.emb_model = embeddings_model
         self.optimizer = optim.Adam(
             self.emb_model.parameters(), lr=learning_rate)
         self.k = neg_sampling_param
