@@ -104,10 +104,12 @@ class TensorTrain(object):
     def to_parameter(self):
         new_cores = []
         for core in self.tt_cores:
-            new_cores.append(nn.Parameter(core))
+            core = nn.Parameter(core)
+            core.is_tt = True
+            new_cores.append(core)
 
         tt_p = TensorTrain(new_cores, convert_to_tensors=False)
-        tt_p._parameter = nn.ParameterList(tt_p.tt_cores)
+        tt_p._parameter = nn.ParameterList(tt_p.tt_cores)        
         tt_p._is_parameter = True
         return tt_p
 
@@ -224,19 +226,19 @@ class TensorTrainBatch():
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.to(device))
-        return TensorTrain(new_cores, convert_to_tensors=False)
+        return TensorTrainBatch(new_cores, convert_to_tensors=False)
 
     def detach(self):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.detach())
-        return TensorTrain(new_cores, convert_to_tensors=False)
+        return TensorTrainBatch(new_cores, convert_to_tensors=False)
 
     def requires_grad_(self, requires_grad=True):
         new_cores = []
         for core in self.tt_cores:
             new_cores.append(core.requires_grad_(requires_grad))
-        return TensorTrain(new_cores, convert_to_tensors=False)
+        return TensorTrainBatch(new_cores, convert_to_tensors=False)
 
     def full(self):
         num_dims = self.ndims
