@@ -70,3 +70,48 @@ class TTEmbedding(nn.Module):
         rows = rows.view(*xshape_new)
         
         return rows
+    
+    
+class TTLinear(nn.Module):
+    def __init__(self, in_features=None, out_features=None, bias=True, init=None, shape=None,
+                 auto_shapes=True, d=3, tt_rank=8, stddev=None 
+                ):
+        super(TTLinear, self).__init__()
+        
+        if auto_shapes:
+            if in_features is None or out_features is None:
+                raise ValueError("Shape is not specified")
+            
+            in_quantization =  t3.utils.get_tt_shape(in_features, d=d)
+            out_quantization = t3.utils.get_tt_shape(out_features, d=d)
+            
+            shape = [in_quantization, out_quantization]
+        
+        if init is None:
+            if shape is None:
+                raise ValueError("if init is not provided, please specify shape, or set auto_shapes=True")
+        else:
+            shape = init.raw_shape
+
+        if init is None:
+            init = t3.glorot_initializer(shape, tt_rank=tt_rank)     
+            
+        self.shape = shape
+        self.weight = init.to_parameter()
+        self.parameters = self.weight.parameter
+        self.weight_t = t3.transpose(self.weight)
+        
+        if bias:
+            self.bias = torch.nn.Parameter(1e-2 * torch.ones(out_features))
+        else:
+            self.register_parameter('bias', None)
+
+
+    def forward(self, x):
+        weight_t = self.weight_t
+        x_t = x.transpose(0, 1)
+    
+        if self.bias is None: 
+            return t3.tt_dense_matmul(weight_t, x_t).transpose(0, 1) 
+        else:
+            return t3.tt_dense_matmul(weight_t, x_t).transpose(0, 1) + self.bias
