@@ -12,7 +12,7 @@ def gather_rows(tt_mat, inds):
     slices = []
     for k, core in enumerate(cores):
         i = inds[:, k]
-        core = core.permute(1, 0, 2, 3)
+        core = core.permute(1, 0, 2, 3).to(inds.device)
         slices.append(torch.index_select(core, 0, i))
 
     return TensorTrainBatch(slices, convert_to_tensors=False)
