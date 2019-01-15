@@ -56,7 +56,7 @@ class TTEmbedding(nn.Module):
         
         xshape = list(x.shape)
         xshape_new = xshape + [self.emb_size,]
-        x = x.contiguous().view(-1)
+        x = x.view(-1)
           
         x_ind = t3.ind2sub(self.voc_quant, x).long()
         rows = t3.gather_rows(self.tt_matrix, x_ind).full()

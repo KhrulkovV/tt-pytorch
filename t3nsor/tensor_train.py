@@ -5,7 +5,7 @@ import torch.nn as nn
 
 class TensorTrain(object):
     def __init__(self, tt_cores, shape=None, tt_ranks=None, convert_to_tensors=True):
-        tt_cores = list(tt_cores)
+        #tt_cores = list(tt_cores)
         if convert_to_tensors:
             for i in range(len(tt_cores)):
                 tt_cores[i] = torch.Tensor(tt_cores[i])
@@ -121,8 +121,8 @@ class TensorTrain(object):
         res = self.tt_cores[0]
 
         for i in range(1, num_dims):
-            res = res.contiguous().view(-1, ranks[i])
-            curr_core = self.tt_cores[i].contiguous().view(ranks[i], -1)
+            res = res.view(-1, ranks[i])
+            curr_core = self.tt_cores[i].view(ranks[i], -1)
             res = torch.matmul(res, curr_core)
 
         if self.is_tt_matrix:
@@ -138,8 +138,11 @@ class TensorTrain(object):
             for i in range(1, 2 * num_dims, 2):
                 transpose.append(i)
             res = res.permute(*transpose)
-
-        res = res.contiguous().view(*shape)
+        
+        if self.is_tt_matrix:
+            res = res.contiguous().view(*shape)
+        else:
+            res = res.view(*shape)
         return res
 
     def __str__(self):
@@ -162,12 +165,12 @@ class TensorTrain(object):
 
 class TensorTrainBatch():
     def __init__(self, tt_cores, shape=None, tt_ranks=None, convert_to_tensors=True):
-        tt_cores = list(tt_cores)
+        #tt_cores = list(tt_cores)
         if convert_to_tensors:
             for i in range(len(tt_cores)):
                 tt_cores[i] = torch.Tensor(tt_cores[i])
 
-        self._tt_cores = tuple(tt_cores)
+        self._tt_cores = tt_cores
 
         self._batch_size = self._tt_cores[0].shape[0]
 
@@ -265,7 +268,11 @@ class TensorTrainBatch():
             for i in range(1, 2 * num_dims, 2):
                 transpose.append(i + 1)
             res = res.permute(transpose)
-        res = res.contiguous().view(*shape)
+            
+        if self.is_tt_matrix:           
+            res = res.contiguous().view(*shape)
+        else:
+            res = res.view(*shape)
         return res
 
     def __str__(self):
