@@ -72,7 +72,7 @@ class TTEmbedding(nn.Module):
         
         rows = rows.view(*xshape_new)
         
-        return rows
+        return rows.to(x.device)
     
     
 class TTLinear(nn.Module):
