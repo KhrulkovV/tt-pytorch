@@ -10,10 +10,36 @@ def gather_rows(tt_mat, inds):
     """
     cores = tt_mat.tt_cores
     slices = []
+    batch_size = int(inds[0].shape[0])
+
+    
+    ranks = [int(tt_core.shape[0]) for tt_core in tt_mat.tt_cores] + [1, ]
+
+    
     for k, core in enumerate(cores):
-        i = inds[:, k]
-        core = core.permute(1, 0, 2, 3).to(inds.device)
-        slices.append(torch.index_select(core, 0, i))
+        i = inds[k]
+        #core = core.permute(1, 0, 2, 3).to(inds.device)
+        
+        cur_slice = torch.index_select(core, 1, i)
+
+        if k == 0:
+            res = cur_slice
+            
+        else:
+            res = res.view(batch_size, -1, ranks[k])
+            curr_core = cur_slice.view(ranks[k], batch_size, -1)
+            res = torch.einsum('oqb,bow->oqw', (res, curr_core))
+            
+       
+    return res
+        
+        
+        
+        
+        
+        #slices.append(torch.index_select(core, 1, i).permute(1, 0, 2, 3))
+        
+        
 
     return TensorTrainBatch(slices, convert_to_tensors=False)
 

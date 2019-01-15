@@ -103,7 +103,7 @@ def ind2sub(siz, idx):
     k = np.concatenate((np.ones(1), k))
 
     for i in range(n - 1, -1, -1):
-        subs.append(torch.floor(idx.float() / k[i]))
+        subs.append(torch.floor(idx.float() / k[i]).long())
         idx = torch.fmod(idx, k[i])
 
     return torch.stack(subs[::-1], dim=1)

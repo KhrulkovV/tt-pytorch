@@ -58,10 +58,13 @@ class TTEmbedding(nn.Module):
         xshape_new = xshape + [self.emb_size,]
         x = x.view(-1)
           
-        x_ind = t3.ind2sub(self.voc_quant, x).long()
-        rows = t3.gather_rows(self.tt_matrix, x_ind).full()
+        # x_ind = t3.ind2sub(self.voc_quant, x)
+        # rows = t3.gather_rows(self.tt_matrix, x_ind)
                  
-        rows = rows.view(x.shape[0], -1)
+        # rows = rows.view(x.shape[0], -1)
+        
+        full = self.tt_matrix.full()
+        rows = full[x]
         
         if self.padding_idx is not None:
             rows = torch.where(x.view(-1, 1) != self.padding_idx, rows, torch.zeros_like(rows))
