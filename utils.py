@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import subprocess
 import pandas as pd
 import pickle
@@ -10,7 +11,10 @@ def binary_accuracy(preds, y):
     """
 
     #round predictions to the closest integer
-    rounded_preds = torch.round(torch.sigmoid(preds))
+    if len(preds.shape) == 1:
+        rounded_preds = torch.round(torch.sigmoid(preds))
+    else:
+        rounded_preds = preds.argmax(1)
     correct = (rounded_preds == y).float() #convert into float for division
     acc = correct.sum()/len(correct)
     return acc
@@ -22,14 +26,20 @@ def train(model, iterator, optimizer, criterion):
     epoch_acc = 0
 
     model.train()
-
+    
+    if isinstance(criterion, nn.CrossEntropyLoss):
+        dtype = torch.LongTensor
+    elif isinstance(criterion, nn.BCEWithLogitsLoss):
+        dtype = torch.FloatTensor
 
     for i, batch in enumerate(iterator):
 
         optimizer.zero_grad()
+        device = batch.text.device
+        labels = batch.label.type(dtype).to(device)
         predictions = model(batch.text).squeeze(1)
-        loss = criterion(predictions, batch.label)
-        acc = binary_accuracy(predictions, batch.label)
+        loss = criterion(predictions, labels)
+        acc = binary_accuracy(predictions, labels)
         loss.backward()
         optimizer.step()
 
@@ -49,17 +59,23 @@ def evaluate(model, iterator, criterion):
     epoch_acc = 0
 
     model.eval()
+    
+    if isinstance(criterion, nn.CrossEntropyLoss):
+        dtype = torch.LongTensor
+    elif isinstance(criterion, nn.BCEWithLogitsLoss):
+        dtype = torch.FloatTensor
 
     with torch.no_grad():
 
         for i, batch in enumerate(iterator):
-
-
+            
+            device = batch.text.device
+            labels = batch.label.type(dtype).to(device)
             predictions = model(batch.text).squeeze(1)
 
-            loss = criterion(predictions, batch.label)
+            loss = criterion(predictions, labels)
 
-            acc = binary_accuracy(predictions, batch.label)
+            acc = binary_accuracy(predictions, labels)
 
             epoch_loss += loss.item()
             epoch_acc += acc.item()
