@@ -115,6 +115,7 @@ if args.use_tt:
             voc_size=INPUT_DIM,
             emb_size=EMBEDDING_DIM,
             auto_shapes=True,
+            auto_shape_mode='mixed',
             d=args.d,
             tt_rank=args.ranks,
             padding_idx=1
@@ -126,13 +127,13 @@ else:
         embedding_dim=EMBEDDING_DIM
     )
     compression_rate = 1.0
-    
-    
+
+
 def cross_entropy_loss(logits, target):
     labels = target.type(torch.LongTensor).to(logits.device)
     return nn.CrossEntropyLoss()(logits, labels)
-    
-    
+
+
 model = nn.Sequential(embed_model, lstm_model)
 
 
@@ -169,7 +170,7 @@ for epoch in range(N_EPOCHS):
     log['test_acc'].append(test_acc)
     log['valid_acc'].append(valid_acc)
     log['valid_loss'].append(valid_loss)
-    
+
     if best_result["valid_acc"] < valid_acc:
         best_result["epoch"] = epoch
         best_result["train_acc"] = train_acc
