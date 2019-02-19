@@ -3,6 +3,9 @@ import numpy as np
 from sympy.utilities.iterables import multiset_partitions
 from sympy.ntheory import factorint
 from itertools import cycle, islice
+import torch
+
+
 
 MODES = ['ascending', 'descending', 'mixed']
 CRITERIONS = ['entropy', 'var']
