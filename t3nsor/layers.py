@@ -28,17 +28,20 @@ class TTEmbedding(nn.Module):
                 emb_size, d=d, criterion=auto_shape_criterion, mode=auto_shape_mode)
 
             shape = [voc_quantization, emb_quantization]
+            self.shape = shape
+            
+        else:
+            self.shape = shape
 
         if init is None:
             if shape is None:
                 raise ValueError("if init is not provided, please specify shape")
         else:
-            shape = init.raw_shape
-
-        self.shape = shape
+            self.shape = init.raw_shape
+        
 
         if init is None:
-            init = t3.glorot_initializer(shape, tt_rank=tt_rank)
+            init = t3.glorot_initializer(self.shape, tt_rank=tt_rank)
 
         self.tt_matrix = init.to_parameter()
         self.parameters = self.tt_matrix.parameter
