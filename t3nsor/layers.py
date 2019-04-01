@@ -15,7 +15,6 @@ class TTEmbedding(nn.Module):
                  auto_shape_criterion='entropy',
                  d=3,
                  tt_rank=8,
-                 stddev=None,
                  batch_dim_last=None,
                  padding_idx=None):
 
@@ -35,7 +34,8 @@ class TTEmbedding(nn.Module):
 
         if init is None:
             if shape is None:
-                raise ValueError("if init is not provided, please specify shape")
+                raise ValueError('if init is not provided,'
+                                 ' please specify shape')
         else:
             self.shape = init.raw_shape
         
@@ -82,7 +82,7 @@ class TTEmbedding(nn.Module):
 
 class TTLinear(nn.Module):
     def __init__(self, in_features=None, out_features=None, bias=True, init=None, shape=None,
-                 auto_shapes=True, d=3, tt_rank=8, stddev=None, auto_shape_mode='ascending',
+                 auto_shapes=True, d=3, tt_rank=8, auto_shape_mode='ascending',
                  auto_shape_criterion='entropy',
                  ):
         super(TTLinear, self).__init__()

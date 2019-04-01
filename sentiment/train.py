@@ -118,7 +118,7 @@ if args.use_tt:
             auto_shape_mode='mixed',
             d=args.d,
             tt_rank=args.ranks,
-            padding_idx=1
+            padding_idx=None
         )
         compression_rate = INPUT_DIM * EMBEDDING_DIM / embed_model.tt_matrix.dof
 else:

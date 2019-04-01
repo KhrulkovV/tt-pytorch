@@ -24,6 +24,7 @@ def train(model, iterator, optimizer, criterion):
 
     epoch_loss = 0
     epoch_acc = 0
+    total_len = 0
 
     model.train()
     
@@ -43,20 +44,25 @@ def train(model, iterator, optimizer, criterion):
         loss.backward()
         optimizer.step()
 
-        epoch_loss += loss.item()
-        epoch_acc += acc.item()
+        B = batch.label.shape[0]
+
+        epoch_loss += B * loss.item()
+        epoch_acc += B * acc.item()
+
+        total_len += B
+
 
         if i > len(iterator):
             break
 
-
-    return epoch_loss / len(iterator), epoch_acc / len(iterator)
+    return epoch_loss / total_len, epoch_acc / total_len
 
 
 def evaluate(model, iterator, criterion):
 
     epoch_loss = 0
     epoch_acc = 0
+    total_len = 0
 
     model.eval()
     
@@ -76,11 +82,13 @@ def evaluate(model, iterator, criterion):
             loss = criterion(predictions, labels)
 
             acc = binary_accuracy(predictions, labels)
+            B = batch.label.shape[0]
 
-            epoch_loss += loss.item()
-            epoch_acc += acc.item()
+            epoch_loss += B * loss.item()
+            epoch_acc += B * acc.item()
+            total_len += B
 
             if i > len(iterator):
                 break
 
-    return epoch_loss / len(iterator), epoch_acc / len(iterator)
+    return epoch_loss / total_len, epoch_acc / total_len
