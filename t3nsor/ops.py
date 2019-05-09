@@ -91,3 +91,27 @@ def tt_dense_matmul(tt_matrix_a, matrix_b):
             
     # At the end the shape of the data is (i0, ..., id-1) x K
     return data.view(a_shape[0], b_shape[1])
+
+
+def dense_tt_matmul(matrix_a, tt_matrix_b):
+    ndims = tt_matrix_b.ndims
+    a_columns = matrix_a.shape[1]
+    b_rows = tt_matrix_b.shape[0]
+    if a_columns is not None and b_rows is not None:
+        if a_columns != b_rows:
+            raise ValueError('Arguments shapes should align got %d and %d instead.' %
+                             (matrix_a.shape, tt_matrix_b.shape))
+
+    a_shape = matrix_a.shape
+    b_shape = tt_matrix_b.shape
+    b_raw_shape = tt_matrix_b.raw_shape
+    data = matrix_a
+
+    new_shape = [-1, ] + b_raw_shape[0] + [1, ]
+    data = data.view(*new_shape)
+
+    for core_idx in range(ndims):
+        curr_core = tt_matrix_b.tt_cores[core_idx]
+        data = torch.tensordot(data, curr_core, dims=[[1, -1], [1, 0]])
+
+    return data.view(a_shape[0], b_shape[1])

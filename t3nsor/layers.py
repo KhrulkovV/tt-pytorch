@@ -109,17 +109,16 @@ class TTLinear(nn.Module):
             init = t3.glorot_initializer(shape, tt_rank=tt_rank)
 
         self.shape = shape
-        self.weight_t = t3.transpose(init).to_parameter()
-        self.parameters = self.weight_t.parameter
+        self.weight = init.to_parameter()
+        self.parameters = self.weight.parameter
         if bias:
             self.bias = torch.nn.Parameter(1e-3 * torch.ones(out_features))
         else:
             self.register_parameter('bias', None)
 
     def forward(self, x):
-        weight_t = self.weight_t
-        x_t = x.transpose(0, 1)
+        weight = self.weight
         if self.bias is None:
-            return t3.tt_dense_matmul(weight_t, x_t).transpose(0, 1)
+            return t3.dense_tt_matmul(x, weight)
         else:
-            return t3.tt_dense_matmul(weight_t, x_t).transpose(0, 1) + self.bias
+            return t3.dense_tt_matmul(x, weight) + self.bias
