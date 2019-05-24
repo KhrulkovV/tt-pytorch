@@ -4,7 +4,11 @@ sys.path.insert(0, '..')
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--use_tt', type=bool, default=False)
+parser.add_argument(
+    '--embedding', 
+    default='tt',
+    choices=['tt', 'tr', 'full'],
+    type=str)
 parser.add_argument('--ranks', type=int, default=8)
 parser.add_argument('--d', type=int, default=3)
 parser.add_argument('--embed_dim', type=int)
@@ -22,9 +26,11 @@ parser.add_argument(
     type=str)
 args = parser.parse_args()
 
-if args.use_tt:
+if args.embedding == 'tt':
     tt = "tt"
-else:
+elif args.embedding == 'tt':
+    tt = 'tr'
+else:             
     tt = "full"
 
 model_name = f"{args.dataset}-dim_{args.embed_dim}-d_{args.d}-ranks_{args.ranks}-{tt}"
@@ -110,7 +116,7 @@ lstm_model = LSTM_Classifier(embedding_dim=EMBEDDING_DIM,
                              bidirectional=BIDIRECTIONAL,
                              dropout=DROPOUT)
 
-if args.use_tt:
+if args.embedding == 'tt':
         embed_model = t3.TTEmbedding(
             voc_size=INPUT_DIM,
             emb_size=EMBEDDING_DIM,
@@ -121,6 +127,17 @@ if args.use_tt:
             padding_idx=1
         )
         compression_rate = INPUT_DIM * EMBEDDING_DIM / embed_model.tt_matrix.dof
+elif args.embedding == 'tr':
+        embed_model = t3.TREmbedding(
+            voc_size=INPUT_DIM,
+            emb_size=EMBEDDING_DIM,
+            auto_shapes=True,
+            auto_shape_mode='mixed',
+            d=args.d,
+            tr_rank=args.ranks,
+            padding_idx=1
+        )
+        compression_rate = INPUT_DIM * EMBEDDING_DIM / embed_model.tr_matrix.dof
 else:
     embed_model = nn.Embedding(
         num_embeddings=INPUT_DIM,
