@@ -34,17 +34,53 @@ class TensorRing(object):
         self._dof = np.sum([np.prod(list(tr_core.shape)) for tr_core in self._tr_cores])
         self._total = np.prod(self._shape)
         
-    @property    
+    @property
     def tr_cores(self):
-        """A list of TR-cores.
+        """A list of TT-cores.
         Returns:
-          A list of 4d or 5d tensors.
+          A list of 3d or 4d tensors of shape
         """
-        return self._tr_cores   
-    
+        return self._tr_cores
+
+    @property
+    def raw_shape(self):
+        return self._raw_shape
+
     @property
     def is_tr_matrix(self):
         return self._is_tr_matrix
+
+    @property
+    def shape(self):
+        return self._shape
+
+    @property
+    def ranks(self):
+        return self._ranks
+
+    @property
+    def ndims(self):
+        return self._ndims
+
+    @property
+    def is_parameter(self):
+        return self._is_parameter
+
+    @property
+    def parameter(self):
+        if self.is_parameter:
+            return self._parameter
+        else:
+            raise ValueError('Not a parameter, run .to_parameter() first')
+            
+    @property
+    def dof(self):
+        return self._dof
+    
+    @property
+    def total(self):
+        return self._total
+        
         
     def full(self):
         num_dims = self._ndims
@@ -82,7 +118,7 @@ class TensorRing(object):
             core.is_tr = True
             new_cores.append(core)
 
-        tr_p = TensorTrain(new_cores, convert_to_tensors=False)
+        tr_p = t3.TensorRing(new_cores, convert_to_tensors=False)
         tr_p._parameter = nn.ParameterList(tr_p.tr_cores)        
         tr_p._is_parameter = True
         return tr_p

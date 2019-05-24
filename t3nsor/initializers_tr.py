@@ -260,8 +260,8 @@ def random_matrix_tr(shape, tr_rank=2, mean=0., stddev=1.,
 
     num_dims = shape[0].size
     if tr_rank.size == 1:
-        tr_rank = tr_rank * np.ones(num_dims - 1)
-        tr_rank = np.concatenate([[1], tr_rank, [1]])
+        tr_rank = tr_rank * np.ones(num_dims + 1)
+        #tr_rank = np.concatenate([[1], tr_rank, [1]])
 
     tr_rank = tr_rank.astype(int)
     var = np.prod(tr_rank)
