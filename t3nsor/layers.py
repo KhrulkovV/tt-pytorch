@@ -78,6 +78,81 @@ class TTEmbedding(nn.Module):
         rows = rows.view(*xshape_new)
 
         return rows.to(x.device)
+    
+class TREmbedding(nn.Module):
+    def __init__(self,
+                 init=None,
+                 shape=None,
+                 voc_size=None,
+                 emb_size=None,
+                 auto_shapes=None,
+                 auto_shape_mode='ascending',
+                 auto_shape_criterion='entropy',
+                 d=3,
+                 tr_rank=8,
+                 batch_dim_last=None,
+                 padding_idx=None):
+
+        super(TREmbedding, self).__init__()
+
+        if auto_shapes:
+            voc_quantization = t3.utils.suggest_shape(
+                voc_size, d=d, criterion=auto_shape_criterion, mode=auto_shape_mode)
+            emb_quantization = t3.utils.auto_shape(
+                emb_size, d=d, criterion=auto_shape_criterion, mode=auto_shape_mode)
+
+            shape = [voc_quantization, emb_quantization]
+            self.shape = shape
+            
+        else:
+            self.shape = shape
+
+        if init is None:
+            if shape is None:
+                raise ValueError('if init is not provided,'
+                                 ' please specify shape')
+        else:
+            self.shape = init.raw_shape
+        
+
+        if init is None:
+            init = t3.glorot_initializer_tr(self.shape, tr_rank=tr_rank)
+
+        self.tr_matrix = init.to_parameter()
+        self.parameters = self.tr_matrix.parameter
+
+        # for p in self.parameters():
+        #    p.name = 'tt_core'
+
+        self.batch_dim_last = batch_dim_last
+        self.voc_size = int(np.prod(self.shape[0]))
+        self.emb_size = int(np.prod(self.shape[1]))
+
+        self.voc_quant = self.shape[0]
+        self.emb_quant = self.shape[1]
+
+        self.padding_idx = padding_idx
+
+    def forward(self, x):
+
+        xshape = list(x.shape)
+        xshape_new = xshape + [self.emb_size, ]
+        x = x.view(-1)
+
+        # x_ind = t3.ind2sub(self.voc_quant, x)
+        # rows = t3.gather_rows(self.tt_matrix, x_ind)
+
+        # rows = rows.view(x.shape[0], -1)
+
+        full = self.tr_matrix.full()
+        rows = full[x]
+
+        if self.padding_idx is not None:
+            rows = torch.where(x.view(-1, 1) != self.padding_idx, rows, torch.zeros_like(rows))
+
+        rows = rows.view(*xshape_new)
+
+        return rows.to(x.device)
 
 
 class TTLinear(nn.Module):
