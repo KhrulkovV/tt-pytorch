@@ -115,3 +115,26 @@ def dense_tt_matmul(matrix_a, tt_matrix_b):
         data = torch.tensordot(data, curr_core, dims=[[1, -1], [1, 0]])
 
     return data.view(a_shape[0], b_shape[1])
+
+def naive_dense_tt_matmul(matrix_a, tt_matrix_b):
+    ndims = tt_matrix_b.ndims
+    a_columns = matrix_a.shape[1]
+    b_rows = tt_matrix_b.shape[0]
+    if a_columns is not None and b_rows is not None:
+        if a_columns != b_rows:
+            raise ValueError('Arguments shapes should align got %d and %d instead.' %
+                             (matrix_a.shape, tt_matrix_b.shape))
+
+    assert ndims == 3
+
+    core0 = tt_matrix_b.tt_cores[0] # 1 x n x m x r
+    core1 = tt_matrix_b.tt_cores[1] # r x n x m x r
+    core2 = tt_matrix_b.tt_cores[2] # r x n x m x 1
+
+    input = matrix_a.view(-1, core0.shape[1], core1.shape[1], core2.shape[1])
+    B = input.shape[0]
+
+    full = torch.einsum('abcd,defg,ghij->bcefhi', core0, core1, core2)
+
+    res = torch.einsum('abcd,bqcsdx->aqdx', input, full)
+    return res.contiguous().view(B, -1)
