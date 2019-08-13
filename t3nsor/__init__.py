@@ -9,6 +9,7 @@ from t3nsor.decompositions import to_tt_matrix
 from t3nsor.ops import gather_rows
 from t3nsor.ops import tt_dense_matmul
 from t3nsor.ops import dense_tt_matmul
+from t3nsor.ops import naive_dense_tt_matmul
 from t3nsor.ops import transpose
 from t3nsor.utils import ind2sub
 from t3nsor.layers import TTEmbedding

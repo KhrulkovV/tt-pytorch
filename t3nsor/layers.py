@@ -158,7 +158,7 @@ class TREmbedding(nn.Module):
 class TTLinear(nn.Module):
     def __init__(self, in_features=None, out_features=None, bias=True, init=None, shape=None,
                  auto_shapes=True, d=3, tt_rank=8, auto_shape_mode='ascending',
-                 auto_shape_criterion='entropy',
+                 auto_shape_criterion='entropy', naive=False
                  ):
         super(TTLinear, self).__init__()
 
@@ -186,6 +186,10 @@ class TTLinear(nn.Module):
         self.shape = shape
         self.weight = init.to_parameter()
         self.parameters = self.weight.parameter
+        if naive:
+            self.mm_op = t3.naive_dense_tt_matmul
+        else:
+            self.mm_op = t3.dense_tt_matmul()
         if bias:
             self.bias = torch.nn.Parameter(1e-3 * torch.ones(out_features))
         else:
@@ -194,6 +198,6 @@ class TTLinear(nn.Module):
     def forward(self, x):
         weight = self.weight
         if self.bias is None:
-            return t3.dense_tt_matmul(x, weight)
+            return self.mm_op(x, weight)
         else:
-            return t3.dense_tt_matmul(x, weight) + self.bias
+            return self.mm_op(x, weight) + self.bias
