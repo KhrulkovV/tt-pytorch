@@ -135,6 +135,5 @@ def naive_dense_tt_matmul(matrix_a, tt_matrix_b):
     B = input.shape[0]
 
     full = torch.einsum('abcd,defg,ghij->bcefhi', core0, core1, core2)
-
-    res = torch.einsum('abcd,bqcsdx->aqdx', input, full)
+    res = torch.einsum('abcd,bqcsdx->aqsx', input, full)
     return res.contiguous().view(B, -1)
