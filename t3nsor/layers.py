@@ -189,7 +189,7 @@ class TTLinear(nn.Module):
         if naive:
             self.mm_op = t3.naive_dense_tt_matmul
         else:
-            self.mm_op = t3.dense_tt_matmul()
+            self.mm_op = t3.dense_tt_matmul
         if bias:
             self.bias = torch.nn.Parameter(1e-3 * torch.ones(out_features))
         else:
