@@ -6,6 +6,7 @@ from t3nsor.initializers import random_matrix
 from t3nsor.initializers import matrix_with_random_cores
 from t3nsor.decompositions import to_tt_tensor
 from t3nsor.decompositions import to_tt_matrix
+from t3nsor.ops import gather_rows_tt, gather_rows_tr
 from t3nsor.ops import gather_rows
 from t3nsor.ops import tt_dense_matmul
 from t3nsor.ops import dense_tt_matmul
