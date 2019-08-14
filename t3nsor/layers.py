@@ -65,8 +65,8 @@ class TTEmbedding(nn.Module):
         x = x.view(-1)
 
         # x_ind = t3.ind2sub(self.voc_quant, x)
-        # rows = t3.gather_rows_tt(self.tt_matrix, x_ind)
-
+        # rows = t3.gather_rows(self.tt_matrix, x_ind)
+        #
         # rows = rows.view(x.shape[0], -1)
 
         full = self.tt_matrix.full()
@@ -140,8 +140,8 @@ class TREmbedding(nn.Module):
         x = x.view(-1)
 
         # x_ind = t3.ind2sub(self.voc_quant, x)
-        # rows = t3.gather_rows_tr(self.tt_matrix, x_ind)
-
+        # rows = t3.gather_rows(self.tr_matrix, x_ind)
+        #
         # rows = rows.view(x.shape[0], -1)
 
         full = self.tr_matrix.full()
