@@ -16,7 +16,8 @@ class TTEmbedding(nn.Module):
                  d=3,
                  tt_rank=8,
                  batch_dim_last=None,
-                 padding_idx=None):
+                 padding_idx=None,
+                 naive=False):
 
         super(TTEmbedding, self).__init__()
 
@@ -57,6 +58,7 @@ class TTEmbedding(nn.Module):
         self.emb_quant = self.shape[1]
 
         self.padding_idx = padding_idx
+        self.naive = naive
 
     def forward(self, x):
 
@@ -68,8 +70,10 @@ class TTEmbedding(nn.Module):
         # rows = t3.gather_rows(self.tt_matrix, x_ind)
 
         # rows = rows.view(x.shape[0], -1)
-
-        full = self.tt_matrix.full()
+        if self.naive:
+            full = t3.naive_full(self.tt_matrix)
+        else:
+            full = self.tt_matrix.full()
         rows = full[x]
 
         if self.padding_idx is not None:

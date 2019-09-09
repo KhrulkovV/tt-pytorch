@@ -29,20 +29,8 @@ def gather_rows(tt_mat, inds):
             res = res.view(batch_size, -1, ranks[k])
             curr_core = cur_slice.view(ranks[k], batch_size, -1)
             res = torch.einsum('oqb,bow->oqw', (res, curr_core))
-            
-       
+
     return res
-        
-        
-        
-        
-        
-        #slices.append(torch.index_select(core, 1, i).permute(1, 0, 2, 3))
-        
-        
-
-    return TensorTrainBatch(slices, convert_to_tensors=False)
-
 
 def transpose(tt_matrix):
     cores = []
@@ -127,9 +115,9 @@ def naive_dense_tt_matmul(matrix_a, tt_matrix_b):
 
     assert ndims == 3
 
-    core0 = tt_matrix_b.tt_cores[0] # 1 x n x m x r
-    core1 = tt_matrix_b.tt_cores[1] # r x n x m x r
-    core2 = tt_matrix_b.tt_cores[2] # r x n x m x 1
+    core0 = tt_matrix_b.tt_cores[0]  # 1 x n x m x r
+    core1 = tt_matrix_b.tt_cores[1]  # r x n x m x r
+    core2 = tt_matrix_b.tt_cores[2]  # r x n x m x 1
 
     input = matrix_a.view(-1, core0.shape[1], core1.shape[1], core2.shape[1])
     B = input.shape[0]
@@ -137,3 +125,15 @@ def naive_dense_tt_matmul(matrix_a, tt_matrix_b):
     full = torch.einsum('abcd,defg,ghij->bcefhi', core0, core1, core2)
     res = torch.einsum('abcd,bqcsdx->aqsx', input, full)
     return res.contiguous().view(B, -1)
+
+
+def naive_full(tt_a):
+    ndims = tt_a.ndims
+    assert ndims == 3
+
+    core0 = tt_a.tt_cores[0]  # 1 x n x m x r
+    core1 = tt_a.tt_cores[1]  # r x n x m x r
+    core2 = tt_a.tt_cores[2]  # r x n x m x 1
+    full = torch.einsum('abcd,defg,ghij->bcefhi', core0, core1, core2)
+    full = full.reshape(tt_a.shape[0], tt_a.shape[1])
+    return full
