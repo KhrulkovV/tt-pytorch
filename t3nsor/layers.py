@@ -29,7 +29,7 @@ class TTEmbedding(nn.Module):
 
             shape = [voc_quantization, emb_quantization]
             self.shape = shape
-            
+
         else:
             self.shape = shape
 
@@ -39,7 +39,7 @@ class TTEmbedding(nn.Module):
                                  ' please specify shape')
         else:
             self.shape = init.raw_shape
-        
+
 
         if init is None:
             init = t3.glorot_initializer(self.shape, tt_rank=tt_rank)
@@ -68,7 +68,7 @@ class TTEmbedding(nn.Module):
 
         # x_ind = t3.ind2sub(self.voc_quant, x)
         # rows = t3.gather_rows(self.tt_matrix, x_ind)
-
+        #
         # rows = rows.view(x.shape[0], -1)
         if self.naive:
             full = t3.naive_full(self.tt_matrix)
@@ -82,7 +82,7 @@ class TTEmbedding(nn.Module):
         rows = rows.view(*xshape_new)
 
         return rows.to(x.device)
-    
+
 class TREmbedding(nn.Module):
     def __init__(self,
                  init=None,
@@ -108,7 +108,7 @@ class TREmbedding(nn.Module):
 
             shape = [voc_quantization, emb_quantization]
             self.shape = shape
-            
+
         else:
             self.shape = shape
 
@@ -118,7 +118,7 @@ class TREmbedding(nn.Module):
                                  ' please specify shape')
         else:
             self.shape = init.raw_shape
-        
+
 
         if init is None:
             init = t3.glorot_initializer_tr(self.shape, tr_rank=tt_rank)
@@ -146,8 +146,8 @@ class TREmbedding(nn.Module):
         x = x.view(-1)
 
         # x_ind = t3.ind2sub(self.voc_quant, x)
-        # rows = t3.gather_rows(self.tt_matrix, x_ind)
-
+        # rows = t3.gather_rows(self.tr_matrix, x_ind)
+        #
         # rows = rows.view(x.shape[0], -1)
         if self.naive:
             full = t3.naive_full(self.tr_matrix)

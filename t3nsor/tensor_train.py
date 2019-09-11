@@ -33,10 +33,18 @@ class TensorTrain(object):
         self._parameter = None
         self._dof = np.sum([np.prod(list(tt_core.shape)) for tt_core in self._tt_cores])
         self._total = np.prod(self._shape)
-        
+
 
     @property
     def tt_cores(self):
+        """A list of TT-cores.
+        Returns:
+          A list of 3d or 4d tensors of shape
+        """
+        return self._tt_cores
+
+    @property
+    def cores(self):
         """A list of TT-cores.
         Returns:
           A list of 3d or 4d tensors of shape
@@ -73,15 +81,15 @@ class TensorTrain(object):
             return self._parameter
         else:
             raise ValueError('Not a parameter, run .to_parameter() first')
-            
+
     @property
     def dof(self):
         return self._dof
-    
+
     @property
     def total(self):
         return self._total
-        
+
 
     def to(self, device):
         new_cores = []
@@ -109,7 +117,7 @@ class TensorTrain(object):
             new_cores.append(core)
 
         tt_p = TensorTrain(new_cores, convert_to_tensors=False)
-        tt_p._parameter = nn.ParameterList(tt_p.tt_cores)        
+        tt_p._parameter = nn.ParameterList(tt_p.tt_cores)
         tt_p._is_parameter = True
         return tt_p
 
@@ -138,7 +146,7 @@ class TensorTrain(object):
             for i in range(1, 2 * num_dims, 2):
                 transpose.append(i)
             res = res.permute(*transpose)
-        
+
         if self.is_tt_matrix:
             res = res.contiguous().view(*shape)
         else:
@@ -268,8 +276,8 @@ class TensorTrainBatch():
             for i in range(1, 2 * num_dims, 2):
                 transpose.append(i + 1)
             res = res.permute(transpose)
-            
-        if self.is_tt_matrix:           
+
+        if self.is_tt_matrix:
             res = res.contiguous().view(*shape)
         else:
             res = res.view(*shape)

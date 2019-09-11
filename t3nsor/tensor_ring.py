@@ -33,10 +33,18 @@ class TensorRing(object):
         self._parameter = None
         self._dof = np.sum([np.prod(list(tr_core.shape)) for tr_core in self._tr_cores])
         self._total = np.prod(self._shape)
-        
+
     @property
     def tr_cores(self):
-        """A list of TT-cores.
+        """A list of TR-cores.
+        Returns:
+          A list of 3d or 4d tensors of shape
+        """
+        return self._tr_cores
+
+    @property
+    def cores(self):
+        """A list of TR-cores.
         Returns:
           A list of 3d or 4d tensors of shape
         """
@@ -72,16 +80,16 @@ class TensorRing(object):
             return self._parameter
         else:
             raise ValueError('Not a parameter, run .to_parameter() first')
-            
+
     @property
     def dof(self):
         return self._dof
-    
+
     @property
     def total(self):
         return self._total
-        
-        
+
+
     def full(self):
         num_dims = self._ndims
         ranks = self._ranks
@@ -93,10 +101,10 @@ class TensorRing(object):
             curr_core = self.tr_cores[core_idx]
 #             print('loop', core_idx, curr_core.shape)
             res = torch.tensordot(res, curr_core, dims=[[-1], [0]])
-    
-        res = torch.einsum('i...i->...', res) # trace  
+
+        res = torch.einsum('i...i->...', res) # trace
 #         print(res.shape)
-        
+
         if self.is_tr_matrix:
             transpose = []
             for i in range(0, 2 * num_dims, 2):
@@ -110,7 +118,7 @@ class TensorRing(object):
         else:
             res = res.view(*shape)
         return res
-    
+
     def to_parameter(self):
         new_cores = []
         for core in self.tr_cores:
@@ -119,8 +127,6 @@ class TensorRing(object):
             new_cores.append(core)
 
         tr_p = t3.TensorRing(new_cores, convert_to_tensors=False)
-        tr_p._parameter = nn.ParameterList(tr_p.tr_cores)        
+        tr_p._parameter = nn.ParameterList(tr_p.tr_cores)
         tr_p._is_parameter = True
         return tr_p
-    
-    
