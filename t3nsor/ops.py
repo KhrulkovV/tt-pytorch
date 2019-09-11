@@ -130,10 +130,13 @@ def naive_dense_tt_matmul(matrix_a, tt_matrix_b):
 def naive_full(tt_a):
     ndims = tt_a.ndims
     assert ndims == 3
+    try:
+        # TT-Embedding
+        core0, core1, core2 = tt_a.tt_cores
+    except:
+        # TR-Embedding
+        core0, core1, core2 = tt_a.tr_cores
 
-    core0 = tt_a.tt_cores[0]  # 1 x n x m x r
-    core1 = tt_a.tt_cores[1]  # r x n x m x r
-    core2 = tt_a.tt_cores[2]  # r x n x m x 1
-    full = torch.einsum('abcd,defg,ghij->bcefhi', core0, core1, core2)
+    full = torch.einsum('abcd,defg,ghia->bcefhi', core0, core1, core2)
     full = full.reshape(tt_a.shape[0], tt_a.shape[1])
     return full

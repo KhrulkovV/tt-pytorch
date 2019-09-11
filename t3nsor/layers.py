@@ -93,9 +93,10 @@ class TREmbedding(nn.Module):
                  auto_shape_mode='ascending',
                  auto_shape_criterion='entropy',
                  d=3,
-                 tr_rank=8,
+                 tt_rank=8,
                  batch_dim_last=None,
-                 padding_idx=None):
+                 padding_idx=None,
+                 naive=False):
 
         super(TREmbedding, self).__init__()
 
@@ -120,7 +121,7 @@ class TREmbedding(nn.Module):
         
 
         if init is None:
-            init = t3.glorot_initializer_tr(self.shape, tr_rank=tr_rank)
+            init = t3.glorot_initializer_tr(self.shape, tr_rank=tt_rank)
 
         self.tr_matrix = init.to_parameter()
         self.parameters = self.tr_matrix.parameter
@@ -136,6 +137,7 @@ class TREmbedding(nn.Module):
         self.emb_quant = self.shape[1]
 
         self.padding_idx = padding_idx
+        self.naive = naive
 
     def forward(self, x):
 
@@ -147,8 +149,10 @@ class TREmbedding(nn.Module):
         # rows = t3.gather_rows(self.tt_matrix, x_ind)
 
         # rows = rows.view(x.shape[0], -1)
-
-        full = self.tr_matrix.full()
+        if self.naive:
+            full = t3.naive_full(self.tr_matrix)
+        else:
+            full = self.tr_matrix.full()
         rows = full[x]
 
         if self.padding_idx is not None:
