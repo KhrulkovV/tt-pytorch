@@ -2,48 +2,6 @@ from t3nsor import TensorTrainBatch
 from t3nsor import TensorTrain
 import torch
 
-
-# def gather_rows(tt_mat, inds):
-#     """
-#     inds -- list of indices of shape batch_size x d
-#     d = len(tt_mat.raw_shape[1])
-#     """
-#     cores = tt_mat.tt_cores
-#     slices = []
-#     batch_size = int(inds[0].shape[0])
-#
-#
-#     ranks = [int(tt_core.shape[0]) for tt_core in tt_mat.tt_cores] + [1, ]
-#
-#
-#     for k, core in enumerate(cores):
-#         i = inds[k]
-#         #core = core.permute(1, 0, 2, 3).to(inds.device)
-#
-#         cur_slice = torch.index_select(core, 1, i)
-#
-#         if k == 0:
-#             res = cur_slice
-#
-#         else:
-#             res = res.view(batch_size, -1, ranks[k])
-#             curr_core = cur_slice.view(ranks[k], batch_size, -1)
-#             res = torch.einsum('oqb,bow->oqw', (res, curr_core))
-#
-#
-#     return res
-#
-#
-#
-#
-#
-#         #slices.append(torch.index_select(core, 1, i).permute(1, 0, 2, 3))
-#
-#
-#
-#     return TensorTrainBatch(slices, convert_to_tensors=False)
-
-
 def gather_rows(tt_mat, inds):
     """
     inds -- list of indices of shape batch_size x d
@@ -70,12 +28,9 @@ def gather_rows(tt_mat, inds):
             curr_core = cur_slice.view(ranks[k], batch_size, -1)
             # r x B x Mr
             res = torch.einsum('oqb,bow->oqw', (res, curr_core))
-            # B x rM x Mr
-
     res = torch.einsum('i...i->...', res.view(batch_size, ranks[0], res.shape[1] // ranks[0], -1, ranks[0]).transpose(0, 1))
 
     return res
-
 
 def transpose(tt_matrix):
     cores = []
@@ -148,3 +103,63 @@ def dense_tt_matmul(matrix_a, tt_matrix_b):
         data = torch.tensordot(data, curr_core, dims=[[1, -1], [1, 0]])
 
     return data.view(a_shape[0], b_shape[1])
+  
+def naive_dense_tt_matmul(matrix_a, tt_matrix_b):
+    ndims = tt_matrix_b.ndims
+    a_columns = matrix_a.shape[1]
+    b_rows = tt_matrix_b.shape[0]
+    if a_columns is not None and b_rows is not None:
+        if a_columns != b_rows:
+            raise ValueError('Arguments shapes should align got %d and %d instead.' %
+                             (matrix_a.shape, tt_matrix_b.shape))
+
+    assert ndims == 3
+
+    core0 = tt_matrix_b.tt_cores[0]  # 1 x n x m x r
+    core1 = tt_matrix_b.tt_cores[1]  # r x n x m x r
+    core2 = tt_matrix_b.tt_cores[2]  # r x n x m x 1
+
+    input = matrix_a.view(-1, core0.shape[1], core1.shape[1], core2.shape[1])
+    B = input.shape[0]
+
+    full = torch.einsum('abcd,defg,ghij->bcefhi', core0, core1, core2)
+    res = torch.einsum('abcd,bqcsdx->aqsx', input, full)
+    return res.contiguous().view(B, -1)
+
+
+def naive_full(tt_a):
+    ndims = tt_a.ndims
+    assert ndims == 3
+    try:
+        # TT-Embedding
+        core0, core1, core2 = tt_a.tt_cores
+    except:
+        # TR-Embedding
+        core0, core1, core2 = tt_a.tr_cores
+
+    full = torch.einsum('abcd,defg,ghia->bcefhi', core0, core1, core2)
+    full = full.reshape(tt_a.shape[0], tt_a.shape[1])
+    return full
+
+def naive_dense_tr_matmul(matrix_a, tr_matrix_b):
+    ndims = tr_matrix_b.ndims
+    a_columns = matrix_a.shape[1]
+    b_rows = tr_matrix_b.shape[0]
+    if a_columns is not None and b_rows is not None:
+        if a_columns != b_rows:
+            raise ValueError('Arguments shapes should align got %d and %d instead.' %
+                             (matrix_a.shape, tr_matrix_b.shape))
+
+    assert ndims == 3
+
+    core0 = tr_matrix_b.tr_cores[0]  # 1 x n x m x r
+    core1 = tr_matrix_b.tr_cores[1]  # r x n x m x r
+    core2 = tr_matrix_b.tr_cores[2]  # r x n x m x 1
+
+    input = matrix_a.view(-1, core0.shape[1], core1.shape[1], core2.shape[1])
+    B = input.shape[0]
+
+    full = torch.einsum('abcd,defg,ghia->bcefhi', core0, core1, core2)
+    res = torch.einsum('abcd,bqcsdx->aqsx', input, full)
+    return res.contiguous().view(B, -1)
+
