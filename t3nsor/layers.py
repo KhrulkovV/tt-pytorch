@@ -209,3 +209,51 @@ class TTLinear(nn.Module):
             return self.mm_op(x, weight)
         else:
             return self.mm_op(x, weight) + self.bias
+
+
+class TRLinear(nn.Module):
+    def __init__(self, in_features=None, out_features=None, bias=True, init=None, shape=None,
+                 auto_shapes=True, d=3, tt_rank=8, auto_shape_mode='ascending',
+                 auto_shape_criterion='entropy', naive=False
+                 ):
+        super(TRLinear, self).__init__()
+
+        if auto_shapes:
+            if in_features is None or out_features is None:
+                raise ValueError("Shape is not specified")
+
+            in_quantization = t3.utils.auto_shape(
+                in_features, d=d, criterion=auto_shape_criterion, mode=auto_shape_mode)
+            out_quantization = t3.utils.auto_shape(
+                out_features, d=d, criterion=auto_shape_criterion, mode=auto_shape_mode)
+
+            shape = [in_quantization, out_quantization]
+
+        if init is None:
+            if shape is None:
+                raise ValueError(
+                    "if init is not provided, please specify shape, or set auto_shapes=True")
+        else:
+            shape = init.raw_shape
+
+        if init is None:
+            init = t3.glorot_initializer_tr(shape, tr_rank=tt_rank)
+
+        self.shape = shape
+        self.weight = init.to_parameter()
+        self.parameters = self.weight.parameter
+        if naive:
+            self.mm_op = t3.naive_dense_tr_matmul
+        else:
+            raise ValueError('Not implemented, use naive option.')
+        if bias:
+            self.bias = torch.nn.Parameter(1e-3 * torch.ones(out_features))
+        else:
+            self.register_parameter('bias', None)
+
+    def forward(self, x):
+        weight = self.weight
+        if self.bias is None:
+            return self.mm_op(x, weight)
+        else:
+            return self.mm_op(x, weight) + self.bias

@@ -140,3 +140,25 @@ def naive_full(tt_a):
     full = torch.einsum('abcd,defg,ghia->bcefhi', core0, core1, core2)
     full = full.reshape(tt_a.shape[0], tt_a.shape[1])
     return full
+
+def naive_dense_tr_matmul(matrix_a, tr_matrix_b):
+    ndims = tr_matrix_b.ndims
+    a_columns = matrix_a.shape[1]
+    b_rows = tr_matrix_b.shape[0]
+    if a_columns is not None and b_rows is not None:
+        if a_columns != b_rows:
+            raise ValueError('Arguments shapes should align got %d and %d instead.' %
+                             (matrix_a.shape, tr_matrix_b.shape))
+
+    assert ndims == 3
+
+    core0 = tr_matrix_b.tr_cores[0]  # 1 x n x m x r
+    core1 = tr_matrix_b.tr_cores[1]  # r x n x m x r
+    core2 = tr_matrix_b.tr_cores[2]  # r x n x m x 1
+
+    input = matrix_a.view(-1, core0.shape[1], core1.shape[1], core2.shape[1])
+    B = input.shape[0]
+
+    full = torch.einsum('abcd,defg,ghia->bcefhi', core0, core1, core2)
+    res = torch.einsum('abcd,bqcsdx->aqsx', input, full)
+    return res.contiguous().view(B, -1)
