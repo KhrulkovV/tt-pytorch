@@ -103,7 +103,7 @@ def dense_tt_matmul(matrix_a, tt_matrix_b):
         data = torch.tensordot(data, curr_core, dims=[[1, -1], [1, 0]])
 
     return data.view(a_shape[0], b_shape[1])
-  
+
 def naive_dense_tt_matmul(matrix_a, tt_matrix_b):
     ndims = tt_matrix_b.ndims
     a_columns = matrix_a.shape[1]
@@ -113,32 +113,55 @@ def naive_dense_tt_matmul(matrix_a, tt_matrix_b):
             raise ValueError('Arguments shapes should align got %d and %d instead.' %
                              (matrix_a.shape, tt_matrix_b.shape))
 
-    assert ndims == 3
+    assert (ndims == 3 or ndims == 4)
 
-    core0 = tt_matrix_b.tt_cores[0]  # 1 x n x m x r
-    core1 = tt_matrix_b.tt_cores[1]  # r x n x m x r
-    core2 = tt_matrix_b.tt_cores[2]  # r x n x m x 1
+    if ndims == 3:
+        core0 = tt_matrix_b.tt_cores[0]  # 1 x n x m x r
+        core1 = tt_matrix_b.tt_cores[1]  # r x n x m x r
+        core2 = tt_matrix_b.tt_cores[2]  # r x n x m x 1
+        input = matrix_a.view(-1, core0.shape[1], core1.shape[1], core2.shape[1])
+        B = input.shape[0]
 
-    input = matrix_a.view(-1, core0.shape[1], core1.shape[1], core2.shape[1])
-    B = input.shape[0]
+        full = torch.einsum('abcd,defg,ghij->bcefhi', core0, core1, core2)
+        res = torch.einsum('abcd,bqcsdx->aqsx', input, full)
+    elif ndims == 4:
+        core0 = tt_matrix_b.tt_cores[0]  # 1 x n x m x r
+        core1 = tt_matrix_b.tt_cores[1]  # r x n x m x r
+        core2 = tt_matrix_b.tt_cores[2]  # r x n x m x r
+        core3 = tt_matrix_b.tt_cores[3]  # r x n x m x 1
+        input = matrix_a.view(-1, core0.shape[1], core1.shape[1],
+                                  core2.shape[1], core3.shape[1])
+        B = input.shape[0]
 
-    full = torch.einsum('abcd,defg,ghij->bcefhi', core0, core1, core2)
-    res = torch.einsum('abcd,bqcsdx->aqsx', input, full)
+        full = torch.einsum('abcd,defg,ghij,jklm->bcefhikl', core0, core1, core2, core3)
+        res = torch.einsum('abcde,bqcsdxey->aqsxy', input, full)
+
     return res.contiguous().view(B, -1)
 
 
 def naive_full(tt_a):
     ndims = tt_a.ndims
-    assert ndims == 3
-    try:
-        # TT-Embedding
-        core0, core1, core2 = tt_a.tt_cores
-    except:
-        # TR-Embedding
-        core0, core1, core2 = tt_a.tr_cores
+    assert (ndims == 3 or ndims == 4)
 
-    full = torch.einsum('abcd,defg,ghia->bcefhi', core0, core1, core2)
-    full = full.reshape(tt_a.shape[0], tt_a.shape[1])
+    if ndims == 3:
+        try:
+            # TT-Embedding
+            core0, core1, core2 = tt_a.tt_cores
+        except:
+            # TR-Embedding
+            core0, core1, core2 = tt_a.tr_cores
+        full = torch.einsum('abcd,defg,ghia->bcefhi', core0, core1, core2)
+        full = full.reshape(tt_a.shape[0], tt_a.shape[1])
+    elif ndims == 4:
+        try:
+            # TT-Embedding
+            core0, core1, core2, core3 = tt_a.tt_cores
+        except:
+            # TR-Embedding
+            core0, core1, core2, core3 = tt_a.tr_cores
+
+        full = torch.einsum('abcd,defg,ghij,jkla->bcefhikl', core0, core1, core2, core3)
+        full = full.reshape(tt_a.shape[0], tt_a.shape[1])
     return full
 
 def naive_dense_tr_matmul(matrix_a, tr_matrix_b):
@@ -162,4 +185,3 @@ def naive_dense_tr_matmul(matrix_a, tr_matrix_b):
     full = torch.einsum('abcd,defg,ghia->bcefhi', core0, core1, core2)
     res = torch.einsum('abcd,bqcsdx->aqsx', input, full)
     return res.contiguous().view(B, -1)
-
