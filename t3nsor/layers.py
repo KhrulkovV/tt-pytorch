@@ -163,12 +163,19 @@ class TREmbedding(nn.Module):
         return rows.to(x.device)
 
 
+FORWARD_MODES = ["auto", "naive", "custom"]
+
 class TTLinear(nn.Module):
     def __init__(self, in_features=None, out_features=None, bias=True, init=None, shape=None,
                  auto_shapes=True, d=3, tt_rank=8, auto_shape_mode='ascending',
-                 auto_shape_criterion='entropy', naive=False
+                 auto_shape_criterion='entropy', forward_mode=None
                  ):
         super(TTLinear, self).__init__()
+
+        if forward_mode not in FORWARD_MODES:
+            raise ValueError(
+            "Only {} are available, got {}".format(FORWARD_MODES, forward_mode)
+            )
 
         if auto_shapes:
             if in_features is None or out_features is None:
@@ -194,10 +201,19 @@ class TTLinear(nn.Module):
         self.shape = shape
         self.weight = init.to_parameter()
         self.parameters = self.weight.parameter
-        if naive:
+        if forward_mode == "naive":
             self.mm_op = t3.naive_dense_tt_matmul
-        else:
+        elif forward_mode == "auto":
             self.mm_op = t3.dense_tt_matmul
+        elif forward_mode == "custom":
+            self.fun = t3.ops.TTLinearFunction(shape=self.shape)
+            def helper(x, weight):
+                cores = weight.tt_cores
+                return self.fun.apply(x, *cores)
+            self.mm_op = helper
+        else:
+            raise NotImplementedError()
+
         if bias:
             self.bias = torch.nn.Parameter(1e-3 * torch.ones(out_features))
         else:

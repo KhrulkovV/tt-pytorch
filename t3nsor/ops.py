@@ -1,5 +1,6 @@
 from t3nsor import TensorTrainBatch
 from t3nsor import TensorTrain
+from torch.autograd import Function
 import torch
 
 def gather_rows(tt_mat, inds):
@@ -37,6 +38,12 @@ def transpose(tt_matrix):
     for core in tt_matrix.tt_cores:
         cores.append(core.transpose(1, 2))
     return TensorTrain(cores)
+
+def transpose_cores(tt_cores):
+    cores = []
+    for core in tt_cores:
+        cores.append(core.transpose(1, 2))
+    return cores
 
 
 def tt_dense_matmul(tt_matrix_a, matrix_b):
@@ -103,7 +110,7 @@ def dense_tt_matmul(matrix_a, tt_matrix_b):
         data = torch.tensordot(data, curr_core, dims=[[1, -1], [1, 0]])
 
     return data.view(a_shape[0], b_shape[1])
-  
+
 def naive_dense_tt_matmul(matrix_a, tt_matrix_b):
     ndims = tt_matrix_b.ndims
     a_columns = matrix_a.shape[1]
@@ -125,6 +132,23 @@ def naive_dense_tt_matmul(matrix_a, tt_matrix_b):
     full = torch.einsum('abcd,defg,ghij->bcefhi', core0, core1, core2)
     res = torch.einsum('abcd,bqcsdx->aqsx', input, full)
     return res.contiguous().view(B, -1)
+
+
+def _naive_dense_tt_cores(matrix_a, tt_cores):
+
+
+    core0 = tt_cores[0]  # 1 x n x m x r
+    core1 = tt_cores[1]  # r x n x m x r
+    core2 = tt_cores[2]  # r x n x m x 1
+
+    input = matrix_a.view(-1, core0.shape[1], core1.shape[1], core2.shape[1])
+    B = input.shape[0]
+
+    full = torch.einsum('abcd,defg,ghij->bcefhi', core0, core1, core2)
+    res = torch.einsum('abcd,bqcsdx->aqsx', input, full)
+    return res.contiguous().view(B, -1)
+
+
 
 
 def naive_full(tt_a):
@@ -163,3 +187,54 @@ def naive_dense_tr_matmul(matrix_a, tr_matrix_b):
     res = torch.einsum('abcd,bqcsdx->aqsx', input, full)
     return res.contiguous().view(B, -1)
 
+
+class TTLinearFunction(Function):
+    """Multiplies a TT-matrix (weights) by a regular matrix (input), returns a regular matrix.
+    Args:
+    weight: `TensorTrain` object containing a TT-matrix of size M x N
+    input: torch.Tensor of size N x P
+    Returns
+    torch.Tensor of size M x P
+    """
+    @staticmethod
+    def _dtdc0(dydt_reshaped, cores):
+        return torch.einsum('ijkabc,xjbt,tkcs->siax', dydt_reshaped, cores[1], cores[2])
+
+    @staticmethod
+    def _dtdc1(dydt_reshaped, cores):
+        # dydt_reshape (m1 x m2 x m3) x (n1 x n2 x n3)
+        # output: r1 x m2 x n2 x r2
+        # core0: 1 x m1 x n1 x r1
+        # core2: r2 x m3 x n3 x 1
+
+        return torch.einsum('ijkabc,xiat,pkcx->tjbp', dydt_reshaped, cores[0], cores[2])
+    @staticmethod
+    def _dtdc2(dydt_reshaped, cores):
+
+        # dydt_reshape (m1 x m2 x m3) x (n1 x n2 x n3)
+        # output: r2 x m3 x n3 x 1
+        # core0: 1 x m1 x n1 x r1
+        # core1: r1 x m2 x n2 x r2
+
+        return torch.einsum('ijkabc,xiat,tjbs->skcx', dydt_reshaped, cores[0], cores[1])
+
+
+    @staticmethod
+    def forward(ctx, input, *tt_cores):
+        ctx.save_for_backward(input, *tt_cores)
+        data = _naive_dense_tt_cores(input, tt_cores)
+        return data
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        inp, *tt_cores = ctx.saved_tensors
+        grad_input = grad_c0 = grad_c1 = grad_c2 = None
+        grad_input = _naive_dense_tt_cores(grad_output, transpose_cores(tt_cores))
+        dydt = inp.t() @ grad_output
+        shape = [core.shape[1] for core in tt_cores] + [core.shape[2] for core in tt_cores]
+        dydt_reshaped = dydt.view(*shape)
+        grad_c0 = TTLinearFunction._dtdc0(dydt_reshaped, tt_cores)
+        grad_c1 = TTLinearFunction._dtdc1(dydt_reshaped, tt_cores)
+        grad_c2 = TTLinearFunction._dtdc2(dydt_reshaped, tt_cores)
+
+        return grad_input, grad_c0, grad_c1, grad_c2
