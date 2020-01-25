@@ -93,7 +93,7 @@ class TREmbedding(nn.Module):
                  auto_shape_mode='ascending',
                  auto_shape_criterion='entropy',
                  d=3,
-                 tt_rank=8,
+                 tr_rank=8,
                  batch_dim_last=None,
                  padding_idx=None,
                  naive=False):
@@ -121,7 +121,7 @@ class TREmbedding(nn.Module):
 
 
         if init is None:
-            init = t3.glorot_initializer_tr(self.shape, tr_rank=tt_rank)
+            init = t3.glorot_initializer_tr(self.shape, tr_rank=tr_rank)
 
         self.tr_matrix = init.to_parameter()
         self.parameters = self.tr_matrix.parameter

@@ -5,7 +5,7 @@ sys.path.insert(0, '..')
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    '--embedding', 
+    '--embedding',
     default='tt',
     choices=['tt', 'tr', 'full'],
     type=str)
@@ -30,7 +30,7 @@ if args.embedding == 'tt':
     tt = "tt"
 elif args.embedding == 'tt':
     tt = 'tr'
-else:             
+else:
     tt = "full"
 
 model_name = f"{args.dataset}-dim_{args.embed_dim}-d_{args.d}-ranks_{args.ranks}-{tt}"
@@ -153,6 +153,7 @@ def cross_entropy_loss(logits, target):
 
 model = nn.Sequential(embed_model, lstm_model)
 
+n_all_param = sum([p.nelement() for p in model.parameters()])
 
 if args.dataset == 'imdb':
     criterion = nn.BCEWithLogitsLoss()
@@ -199,3 +200,6 @@ for epoch in range(N_EPOCHS):
             pickle.dump(best_result, f)
     print(f'| Epoch: {epoch+1:02} | Train Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}% | Val. Loss: {valid_loss:.3f} | Val. Acc: {valid_acc*100:.2f}% | Test Loss: {test_loss:.3f} | Test Acc: {test_acc*100:.2f}% |')
     print ("TEST ACCURACY:", np.round(best_result["test_acc"] * 100, 2))
+    if epoch == 0 or epoch == N_EPOCHS-1:
++        print('Compression rate:', compression_rate)
++        print('#params = {}'.format(n_all_param))
