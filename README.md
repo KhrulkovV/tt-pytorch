@@ -39,3 +39,14 @@ The directory `sentiment` contains the models and experiment setting files.
 - Leyla Mirvakhabova
 - Elena Orlova
 - Ivan Oseledets
+
+If you use these algorithms in your research we kindly ask you to cite our work
+
+```
+@article{khrulkov2019tensorized,
+  title={Tensorized {E}mbedding {L}ayers {F}or {E}fficient {M}odel {C}ompression},
+  author={Khrulkov, Valentin and Hrinchuk, Oleksii and Mirvakhabova, Leyla and Oseledets, Ivan},
+  journal={arXiv preprint arXiv:1901.10787},
+  year={2019}
+}
+```
