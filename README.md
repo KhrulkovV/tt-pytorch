@@ -15,7 +15,7 @@
 
 You may install `PyTorch` using any suggested method for your environment [here](https://pytorch.org/get-started/locally/).
 
-Also, after cloning the repo, you can run  ``setup.py install`` in the command line to install the required packages.
+Also, after cloning the repo, you can run  ``python setup.py install`` in the command line to install the required packages.
 
 ### Setting up experiments
 
@@ -45,7 +45,7 @@ If you use these algorithms in your research we kindly ask you to cite our work
 ```
 @article{khrulkov2019tensorized,
   title={Tensorized {E}mbedding {L}ayers {F}or {E}fficient {M}odel {C}ompression},
-  author={Khrulkov, Valentin and Hrinchuk, Oleksii and Mirvakhabova, Leyla and Oseledets, Ivan},
+  author={Khrulkov, Valentin and Hrinchuk, Oleksii and Mirvakhabova, Leyla and Orlova, Elena and Oseledets, Ivan},
   journal={arXiv preprint arXiv:1901.10787},
   year={2019}
 }
